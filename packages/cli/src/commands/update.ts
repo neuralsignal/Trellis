@@ -47,20 +47,12 @@ import {
 } from "../templates/trellis/index.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
 import {
-  COPILOT_INSTRUCTIONS_BLOCK_END,
-  COPILOT_INSTRUCTIONS_BLOCK_START,
-  COPILOT_INSTRUCTIONS_PATH,
-  getCopilotInstructions,
-} from "../templates/copilot/index.js";
-
-import {
   ALL_MANAGED_DIRS,
   getConfiguredPlatforms,
   collectPlatformTemplates,
 } from "../configurators/index.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import { preserveCodexAgentModelKeys } from "../configurators/codex.js";
-import { printZcodeSetupHint } from "../configurators/zcode.js";
 import { ensureGitattributes } from "../configurators/workflow.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import {
@@ -245,16 +237,6 @@ function buildAgentsMdTemplate(cwd: string): string {
   );
 }
 
-function buildCopilotInstructionsTemplate(cwd: string): string {
-  return buildManagedBlockTemplate(
-    cwd,
-    COPILOT_INSTRUCTIONS_PATH,
-    getCopilotInstructions(),
-    COPILOT_INSTRUCTIONS_BLOCK_START,
-    COPILOT_INSTRUCTIONS_BLOCK_END,
-  );
-}
-
 function isKnownUntrackedTemplate(
   relativePath: string,
   existingContent: string,
@@ -269,35 +251,6 @@ function isKnownUntrackedTemplate(
   }
 
   return LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES.has(computeHash(managedBlock));
-}
-
-function isSafeUntrackedCopilotInstructionsMerge(
-  relativePath: string,
-  existingContent: string,
-  newContent: string,
-): boolean {
-  if (relativePath !== COPILOT_INSTRUCTIONS_PATH) {
-    return false;
-  }
-
-  if (
-    getManagedBlock(
-      existingContent,
-      COPILOT_INSTRUCTIONS_BLOCK_START,
-      COPILOT_INSTRUCTIONS_BLOCK_END,
-    )
-  ) {
-    return false;
-  }
-
-  return (
-    mergeManagedBlockContent(
-      existingContent,
-      getCopilotInstructions(),
-      COPILOT_INSTRUCTIONS_BLOCK_START,
-      COPILOT_INSTRUCTIONS_BLOCK_END,
-    ) === newContent
-  );
 }
 
 /**
@@ -663,7 +616,7 @@ export function applyConfigSectionsAdded(
  *
  * Detection: Trellis-tracked hashes contain `.agents/skills/` entries
  * but `.codex/` does not exist. This avoids misclassifying repos that
- * have `.agents/skills/` from other tools (Kimi CLI, Amp, etc.).
+ * have `.agents/skills/` from other tools (Amp, etc.).
  *
  * Returns true if upgrade is needed. Does NOT perform the upgrade —
  * caller should run configurePlatform("codex") after backup/confirm.
@@ -912,12 +865,6 @@ async function collectTemplateFiles(
       for (const [filePath, content] of platformFiles) {
         files.set(filePath, content);
       }
-      if (platformId === "copilot") {
-        files.set(
-          COPILOT_INSTRUCTIONS_PATH,
-          buildCopilotInstructionsTemplate(cwd),
-        );
-      }
     }
   }
 
@@ -1018,13 +965,7 @@ function analyzeChanges(
         if (
           (storedHash && storedHash === currentHash) ||
           (!storedHash &&
-            isKnownUntrackedTemplate(relativePath, existingContent)) ||
-          (!storedHash &&
-            isSafeUntrackedCopilotInstructionsMerge(
-              relativePath,
-              existingContent,
-              newContent,
-            ))
+            isKnownUntrackedTemplate(relativePath, existingContent))
         ) {
           // Either the tracked hash matches, or this is a known pristine template
           // from before the path was hash-tracked. Safe to auto-update.
@@ -1061,8 +1002,8 @@ function analyzeChanges(
  * A genuinely customized file differs from its template, lands in
  * `changedFiles`, and is never seen by this function.
  *
- * That also leaves the mixed-ownership paths — `AGENTS.md`,
- * `.github/copilot-instructions.md`, `.trellis/config.yaml` — free to differ
+ * That also leaves the mixed-ownership paths — `AGENTS.md` and
+ * `.trellis/config.yaml` — free to differ
  * from their recorded hash, which for them is the correct state: once the
  * repository has appended its own content they are no longer `unchanged`.
  */
@@ -1277,7 +1218,6 @@ const BACKUP_EXCLUDE_PATTERNS = [
   // snapshot the entire nested working tree. Confirmed conventions:
   //   Claude Code: .claude/worktrees/
   //   Cursor CLI:  .cursor/worktrees/
-  //   Gemini CLI:  .gemini/worktrees/
   // Matches any platform using the same convention (future-proof).
   "/worktrees/",
   "/worktree/",
@@ -1439,7 +1379,7 @@ function collectAllFiles(dirPath: string, cwd = process.cwd()): string[] {
  * there) must not be allowed to overwrite it with older/differently-flavored
  * content (#447 — a legacy `.pi/skills/` copy rendered with the Pi-specific
  * resolver must not clobber the shared, neutral `.agents/skills/` content
- * Codex/Gemini already wrote).
+ * Codex already wrote).
  */
 function dirMatchesCurrentTemplates(
   cwd: string,
@@ -1884,7 +1824,7 @@ export async function executeMigrations(
       const newPrefix = item.to.endsWith("/") ? item.to : item.to + "/";
 
       // Target already exists and already holds canonical, current-version
-      // content (e.g. Codex/Gemini already wrote the shared `.agents/skills/`
+      // content (e.g. Codex already wrote the shared `.agents/skills/`
       // root before Pi's legacy `.pi/skills/` copy gets retired). Renaming
       // the source in would clobber good content with older/differently-
       // flavored bytes, so just drop the now-redundant source instead (#447).
@@ -2169,7 +2109,6 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Load template hashes for modification detection
   let hashes = loadHashes(cwd);
-  const zcodeConfigured = getConfiguredPlatforms(cwd).has("zcode");
   const isFirstHashTracking = Object.keys(hashes).length === 0;
 
   // Handle unknown version - skip regular migrations but safe-file-delete still runs
@@ -2463,7 +2402,6 @@ export async function update(options: UpdateOptions): Promise<void> {
         );
       }
     }
-    if (zcodeConfigured) printZcodeSetupHint();
     return;
   }
 
@@ -2880,8 +2818,6 @@ export async function update(options: UpdateOptions): Promise<void> {
       }
     }
   }
-
-  if (zcodeConfigured) printZcodeSetupHint();
 
   // Display breaking change warnings at the very end (so they don't scroll off screen)
   if (cliVsProject > 0 && projectVersion !== "unknown") {

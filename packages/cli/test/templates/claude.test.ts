@@ -45,11 +45,9 @@ describe("settingsTemplate SessionStart matchers", () => {
     hooks: { type: string; command: string; timeout: number }[];
   }[];
 
-  it("includes startup, clear, and compact matchers", () => {
+  it("includes startup and clear matchers, but not compact", () => {
     const matchers = sessionStartEntries.map((e) => e.matcher);
-    expect(matchers).toContain("startup");
-    expect(matchers).toContain("clear");
-    expect(matchers).toContain("compact");
+    expect(matchers).toEqual(["startup", "clear"]);
   });
 
   it("all SessionStart entries invoke the same session-start.py hook", () => {

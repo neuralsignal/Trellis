@@ -1006,26 +1006,7 @@ interface InitOptions {
   claude?: boolean;
   opencode?: boolean;
   codex?: boolean;
-  kilo?: boolean;
-  kiro?: boolean;
-  gemini?: boolean;
-  antigravity?: boolean;
-  devin?: boolean;
-  /** Deprecated alias for `devin` — Windsurf was renamed to Devin. */
-  windsurf?: boolean;
-  qoder?: boolean;
-  codebuddy?: boolean;
-  copilot?: boolean;
-  droid?: boolean;
-  dsh?: boolean;
   pi?: boolean;
-  reasonix?: boolean;
-  zcode?: boolean;
-  trae?: boolean;
-  omp?: boolean;
-  grok?: boolean;
-  kimi?: boolean;
-  snow?: boolean;
   yes?: boolean;
   user?: string;
   force?: boolean;
@@ -1107,14 +1088,6 @@ export async function init(options: InitOptions): Promise<void> {
   if (isCwdHomedir() && !homedirBypassEnabled()) {
     console.error(chalk.red(homedirGuardMessage("init")));
     process.exit(1);
-  }
-
-  // Deprecated alias: --windsurf → --devin (Windsurf was renamed to Devin).
-  // Normalize here too so programmatic callers (not just the CLI action) map
-  // correctly. The CLI action prints the deprecation notice.
-  if (options.windsurf) {
-    options.devin = true;
-    delete options.windsurf;
   }
 
   const cwd = process.cwd();

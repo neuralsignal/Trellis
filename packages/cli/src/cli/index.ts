@@ -75,25 +75,7 @@ program
   .option("--claude", "Include Claude Code commands")
   .option("--opencode", "Include OpenCode commands")
   .option("--codex", "Include Codex skills")
-  .option("--kilo", "Include Kilo CLI commands")
-  .option("--kiro", "Include Kiro Code skills")
-  .option("--gemini", "Include Gemini CLI commands")
-  .option("--antigravity", "Include Antigravity workflows")
-  .option("--devin", "Include Devin workflows")
-  .option("--windsurf", "Deprecated alias for --devin (Windsurf was renamed)")
-  .option("--qoder", "Include Qoder commands")
-  .option("--codebuddy", "Include CodeBuddy commands")
-  .option("--copilot", "Include GitHub Copilot hooks")
-  .option("--droid", "Include Factory Droid commands")
-  .option("--dsh", "Include DeepSeek Harness (dsh) skills")
   .option("--pi", "Include Pi Agent extension assets")
-  .option("--reasonix", "Include Reasonix skills")
-  .option("--zcode", "Include ZCode commands")
-  .option("--omp", "Include Oh My Pi extension assets")
-  .option("--trae", "Include Trae IDE commands")
-  .option("--grok", "Include Grok Build skills and agents")
-  .option("--kimi", "Include Kimi Code skills")
-  .option("--snow", "Include Snow CLI skills and commands")
   .option(
     "--with-statusline",
     "Install the Trellis statusLine for Claude Code (off by default)",
@@ -130,16 +112,6 @@ program
   )
   .action(async (options: Record<string, unknown>) => {
     try {
-      // Deprecated alias: --windsurf → --devin (Windsurf was renamed to Devin).
-      if (options.windsurf) {
-        console.log(
-          chalk.yellow(
-            "⚠ --windsurf is deprecated (Windsurf was renamed to Devin). Use --devin instead.",
-          ),
-        );
-        options.devin = true;
-        delete options.windsurf;
-      }
       await init(options);
     } catch (error) {
       console.error(

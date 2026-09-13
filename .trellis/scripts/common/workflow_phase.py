@@ -154,9 +154,6 @@ _PLATFORM_MARKER_LABELS: dict[str, str] = {
     # registry id keeps a non-empty routing section, so a missing entry fails
     # there rather than silently blanking that platform's routing.
     "claude": "Claude Code",
-    "kimi": "Kimi Code",
-    "omp": "Oh My Pi",
-    "dsh": "DeepSeek Harness",
 }
 
 
@@ -167,8 +164,7 @@ def resolve_effective_platform(platform: str, config: dict) -> str:
     default or ``"codex-inline"`` when explicitly configured in
     ``.trellis/config.yaml``. ``sub-agent`` remains an alias for ``auto``.
     ``filter_platform`` then surfaces blocks whose marker lists include the
-    namespaced name (e.g. ``[codex-sub-agent, ...]`` or ``[codex-inline, Kilo,
-    Antigravity, Devin]``).
+    namespaced name (e.g. ``[codex-sub-agent, ...]`` or ``[codex-inline]``).
 
     Native Codex context injection supports the ``auto`` default. Invalid
     explicit values fall back to ``inline`` safely; this renderer deliberately

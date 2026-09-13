@@ -23,16 +23,6 @@
             "timeout": 30
           }
         ]
-      },
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{{PYTHON_CMD}} .claude/hooks/session-start.py",
-            "timeout": 30
-          }
-        ]
       }
     ],
     "PreToolUse": [

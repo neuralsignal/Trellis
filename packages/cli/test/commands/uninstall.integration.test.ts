@@ -200,48 +200,6 @@ describe("uninstall() integration", () => {
     // still exist (since user-custom.py lives there) and .claude/ must too.
     expect(fs.existsSync(userHookDir)).toBe(true);
   });
-
-  it("#8a empty managed sub-dirs and root dir are pruned (kilo: no structured config)", async () => {
-    // Kilo has no hooks.json/settings.json/config.toml/package.json — every
-    // manifest file is opaque and gets deleted, so the entire .kilocode/
-    // tree should disappear, demonstrating both nested-subdir cleanup and
-    // empty-platform-root cleanup.
-    await init({ yes: true, kilo: true, force: true });
-
-    // Detect kilo's actual config dir from manifest entries.
-    const hashesBefore = loadHashes(tmpDir);
-    const kiloEntry = Object.keys(hashesBefore).find(
-      (p) => !p.startsWith(".trellis/") && p !== "AGENTS.md",
-    );
-    if (!kiloEntry) throw new Error("test fixture: no kilo entries found");
-    const kiloRoot = kiloEntry.split("/")[0];
-    expect(fs.existsSync(path.join(tmpDir, kiloRoot))).toBe(true);
-
-    await uninstall({ yes: true });
-
-    // Empty platform root dir should be removed.
-    expect(fs.existsSync(path.join(tmpDir, kiloRoot))).toBe(false);
-  });
-
-  it("#8b platform root dir survives only when scrubbing leaves residual structured content", async () => {
-    // Cursor's hooks.json template contains `{ version: 1, hooks: {...} }`.
-    // After trellis hooks are stripped, `{ version: 1 }` remains — not fully
-    // empty per the scrubber, so the file (and therefore .cursor/) survive.
-    // This documents the boundary of the cleanup contract.
-    await init({ yes: true, cursor: true, force: true });
-    await uninstall({ yes: true });
-
-    // Sub-directories under .cursor/ that became empty should be gone.
-    for (const sub of ["agents", "commands", "hooks", "skills"]) {
-      expect(fs.existsSync(path.join(tmpDir, ".cursor", sub))).toBe(false);
-    }
-    // hooks.json residual (version: 1) keeps .cursor/ alive.
-    if (fs.existsSync(path.join(tmpDir, ".cursor"))) {
-      const remaining = fs.readdirSync(path.join(tmpDir, ".cursor"));
-      expect(remaining).toEqual(["hooks.json"]);
-    }
-  });
-
   it("#8 .claude/settings.json with extra user fields keeps user fields, strips trellis hooks", async () => {
     await init({ yes: true, claude: true, force: true });
 

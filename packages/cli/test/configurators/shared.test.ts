@@ -433,7 +433,8 @@ describe("resolvePlaceholders", () => {
 
 // ---------------------------------------------------------------------------
 // resolvePlaceholdersNeutral — neutral CMD_REF for shared `.agents/skills/`
-// (issue #224 fix: avoid Codex+Gemini last-writer-wins on identical files)
+// (issue #224 fix: avoid last-writer-wins between platforms sharing
+// `.agents/skills/` — codex and pi both write it)
 // ---------------------------------------------------------------------------
 
 describe("resolvePlaceholdersNeutral", () => {
@@ -518,13 +519,13 @@ describe("resolvePlaceholdersNeutral", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
-  it("resolveSkillsNeutral produces byte-identical output for Codex and Gemini", () => {
+  it("resolveSkillsNeutral produces byte-identical output for Codex and Pi", () => {
     const codexSkills = resolveSkillsNeutral(AI_TOOLS.codex.templateContext);
-    const geminiSkills = resolveSkillsNeutral(AI_TOOLS.gemini.templateContext);
-    expect(codexSkills.length).toBe(geminiSkills.length);
+    const piSkills = resolveSkillsNeutral(AI_TOOLS.pi.templateContext);
+    expect(codexSkills.length).toBe(piSkills.length);
     for (let i = 0; i < codexSkills.length; i++) {
-      expect(codexSkills[i].name).toBe(geminiSkills[i].name);
-      expect(codexSkills[i].content).toBe(geminiSkills[i].content);
+      expect(codexSkills[i].name).toBe(piSkills[i].name);
+      expect(codexSkills[i].content).toBe(piSkills[i].content);
     }
   });
 

@@ -1289,9 +1289,9 @@ describe("pi extension: context injection limits (issue #441)", () => {
       writeConfig(root, "session_auto_commit: true\n");
       const { readContextInjectionLimits } = loadExtensionInternals();
       expect(readContextInjectionLimits(root)).toEqual({
-        max_file_bytes: 32768,
-        max_artifact_bytes: 65536,
-        max_total_bytes: 131072,
+        max_file_bytes: 8192,
+        max_artifact_bytes: 16384,
+        max_total_bytes: 32768,
       });
     });
 
@@ -1299,9 +1299,9 @@ describe("pi extension: context injection limits (issue #441)", () => {
       const root = createRoot();
       const { readContextInjectionLimits } = loadExtensionInternals();
       expect(readContextInjectionLimits(root)).toEqual({
-        max_file_bytes: 32768,
-        max_artifact_bytes: 65536,
-        max_total_bytes: 131072,
+        max_file_bytes: 8192,
+        max_artifact_bytes: 16384,
+        max_total_bytes: 32768,
       });
     });
 
@@ -1344,7 +1344,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
         ["context_injection:", "  max_file_bytes: -5"].join("\n"),
       );
       const { readContextInjectionLimits } = loadExtensionInternals();
-      expect(readContextInjectionLimits(root).max_file_bytes).toBe(32768);
+      expect(readContextInjectionLimits(root).max_file_bytes).toBe(8192);
     });
 
     it("falls back to default for a non-integer value", () => {
@@ -1357,7 +1357,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
         ),
       );
       const { readContextInjectionLimits } = loadExtensionInternals();
-      expect(readContextInjectionLimits(root).max_artifact_bytes).toBe(65536);
+      expect(readContextInjectionLimits(root).max_artifact_bytes).toBe(16384);
     });
   });
 
@@ -1477,10 +1477,10 @@ describe("pi extension: context injection limits (issue #441)", () => {
       const { buildContextForTest } = loadExtensionInternals();
       const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
       expect(Buffer.byteLength(out, "utf-8")).toBeLessThanOrEqual(
-        128 * 1024 + 1024,
+        32 * 1024 + 1024,
       );
       expect(out).toContain(
-        "[Trellis: truncated at 32768 bytes — read big.txt for the full content]",
+        "[Trellis: truncated at 8192 bytes — read big.txt for the full content]",
       );
     });
 

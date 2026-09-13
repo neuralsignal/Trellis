@@ -88,9 +88,9 @@ export function isTrellisSubagent(input) {
 // ============================================================
 
 const DEFAULT_CONTEXT_INJECTION_LIMITS = {
-  max_file_bytes: 32768,
-  max_artifact_bytes: 65536,
-  max_total_bytes: 131072,
+  max_file_bytes: 8192,
+  max_artifact_bytes: 16384,
+  max_total_bytes: 32768,
 }
 
 /**

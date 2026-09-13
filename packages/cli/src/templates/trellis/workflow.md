@@ -154,47 +154,45 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 
 ### Request Triage
 
-- Simple conversation or small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
-- Complex task: ask whether you may create a Trellis task and enter planning. If the user says no, do not do broad inline implementation; explain, clarify scope, or suggest a smaller split.
-- User approval to create a task is not approval to start implementation. Planning still happens first.
+Ask before creating a Trellis task, every time. If the user declines: skip Trellis for a simple turn; for a complex one, clarify scope or suggest a smaller split rather than implementing broadly inline. Consent to create a task is not consent to implement — planning still happens first.
 
 ### Planning Artifacts
 
-- `prd.md` — requirements, constraints, and acceptance criteria. Do not put technical design or execution checklists here.
-- `design.md` — technical design for complex tasks: boundaries, contracts, data flow, tradeoffs, compatibility, rollout / rollback shape.
-- `implement.md` — execution plan for complex tasks: ordered checklist, validation commands, review gates, and rollback points.
-- `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
-- Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
+- `prd.md` — requirements, constraints, acceptance criteria. No technical design, no execution checklist.
+- `design.md` — boundaries, contracts, data flow, tradeoffs, compatibility, rollout / rollback shape.
+- `implement.md` — ordered checklist, validation commands, review gates, rollback points.
+- `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context; they do not replace `implement.md`.
+
+Lightweight tasks may be PRD-only. Complex tasks need all three before `task.py start`.
 
 ### Parent / Child Task Trees
 
-Use a parent task when one user request contains several independently verifiable deliverables. The parent task owns the source requirement set, the task map, cross-child acceptance criteria, and final integration review; it normally should not be the implementation target unless it also has direct work.
+Use a parent task when one request holds several independently verifiable deliverables. It owns the source requirement set, the task map, cross-child acceptance criteria and final integration review, and is normally not the implementation target unless it also has direct work. Each child is planned, implemented, checked and archived on its own, with testable acceptance criteria.
 
-Use child tasks for deliverables that can be planned, implemented, checked, and archived independently. Parent/child structure is not a dependency system: if one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
+Parent/child structure is not a dependency system: if one child must wait for another, write that ordering into the child's `prd.md` / `implement.md`.
 
-Create new children with `task.py create "<title>" --slug <name> --parent <parent-dir>`. Link existing tasks with `task.py add-subtask <parent> <child>`, and unlink mistakes with `task.py remove-subtask <parent> <child>`.
+Create children with `task.py create "<title>" --slug <name> --parent <parent-dir>`. Link existing tasks with `task.py add-subtask <parent> <child>`, unlink with `task.py remove-subtask <parent> <child>`.
 
 <!-- Per-turn breadcrumb: shown when there is no active task (before Phase 1) -->
 
 [workflow-state:no_task]
-No active task. First classify the current turn and ask for task-creation consent before creating any Trellis task.
-Simple conversation / small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
-Complex task: ask the user if you can create a Trellis task and enter the planning phase. If the user says no, explain, clarify scope, or suggest a smaller split.
+No active task. Classify the turn, then ask for task-creation consent before creating one.
+If the user says no: skip Trellis for a simple turn; for a complex one, explain, clarify scope, or suggest a smaller split rather than implementing inline.
 [/workflow-state:no_task]
 
 <!-- Per-turn breadcrumb: shown when the active task record cannot be read. -->
 
 [workflow-state:task_error]
 The active task record could not be read. Do not create or activate another task.
-Inspect the task directory named above and repair its task.json. It must be a valid JSON object with a non-empty status.
-Preserve existing task fields and artifacts. If the correct status cannot be determined safely, ask the user before reconstructing the record.
+Inspect the task directory named above and repair its task.json: a valid JSON object with a non-empty status, existing fields and artifacts preserved.
+If the correct status cannot be determined safely, ask the user before reconstructing the record.
 [/workflow-state:task_error]
 
 ### Phase 1: Plan
 - 1.0 Create task `[required · once]` (only after task-creation consent)
 - 1.1 Requirement exploration `[required · repeatable]` (`prd.md`; complex tasks also need `design.md` + `implement.md`)
 - 1.2 Research `[optional · repeatable]`
-- 1.3 Configure context `[required · once]` — Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Grok, Kimi Code (sub-agent-dispatch platforms only; inline platforms skip)
+- 1.3 Configure context `[required · once]` — Claude Code, Cursor, OpenCode, Codex, Pi (sub-agent-dispatch platforms only; inline platforms skip)
 - 1.4 Activate task `[required · once]` (review gate, then `task.py start`; status → in_progress)
 - 1.5 Completion criteria
 
@@ -231,10 +229,10 @@ Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-bef
      therefore must cover every required step from implementation through
      commit, including Phase 3.3 spec update and Phase 3.4 commit. -->
 
-Sub-agent dispatch protocol applies to all platforms and all sub-agents, including native Codex `SubagentStart` context injection with child-side pull fallback, class-2 Gemini/Qoder/Copilot/Reasonix/Trae/Grok/Kimi Code, hook-backed ZCode/Snow, and `trellis-research`: every dispatch prompt starts with `Active task: <task path from task.py current>` before role-specific instructions. On Grok Build, use `spawn_subagent` with `subagent_type` set to the Trellis agent name (e.g. `trellis-implement`). On Kimi Code, dispatch the built-in `coder` / `explore` sub-agent with the matching `.kimi-code/skills/trellis-<role>/SKILL.md` instructions.
+Sub-agent dispatch protocol — all platforms, all sub-agents, `trellis-research` included: every dispatch prompt starts with `Active task: <task path from task.py current>` before role-specific instructions, with native Codex `SubagentStart` context injection and a child-side pull fallback.
 
 [workflow-state:in_progress]
-Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
+Tools: `trellis-implement` / `trellis-research` are sub-agent types (Task/Agent tool), not skills. `trellis-update-spec` is a skill. `trellis-check` is both; prefer the Agent form after code changes.
 Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` -> commit (Phase 3.4) -> `/trellis:finish-work`.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
@@ -273,45 +271,24 @@ Code committed. Run `/trellis:finish-work`; if dirty, return to Phase 3.4 first.
 
 ### Rules
 
-1. Identify which Phase you're in, then continue from the next step there
-2. Run steps in order inside each Phase; `[required]` steps can't be skipped
-3. Phases can roll back (e.g., Execute reveals a prd defect → return to Plan to fix, then re-enter Execute)
-4. Steps tagged `[once]` are skipped if the output already exists; don't re-run
-5. Artifact presence informs the next step; missing `design.md` / `implement.md` is valid for lightweight tasks and incomplete planning for complex tasks.
+1. Identify which Phase you're in, then continue from the next step there.
+2. Run steps in order; `[required]` steps can't be skipped, and `[once]` steps are skipped when their output already exists.
+3. Phases can roll back — Execute reveals a prd defect → return to Plan to fix, then re-enter Execute.
+4. Artifact presence informs the next step; a missing `design.md` / `implement.md` is valid for a lightweight task and incomplete planning for a complex one.
+5. Persist planning to the task artifacts, and run the checks before reporting completion.
 
 ### Active Task Routing
 
-When a user request matches one of these intents inside an active task, route first, then load the detailed phase step if needed.
-
-[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+Match the request to an intent, route first, then load the phase step if needed.
 
 - Planning or unclear requirements -> `trellis-brainstorm`.
-- `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`.
 - Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
-
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
-
-[codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
-
-- Planning or unclear requirements -> `trellis-brainstorm`.
-- Before editing -> `trellis-before-dev`; after editing -> `trellis-check`.
-- Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
-
-[/codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
-
-### Guardrails
-
-- Task creation approval is not implementation approval; implementation waits for `task.py start` after artifact review.
-- PRD-only is valid for lightweight tasks; complex tasks need `design.md` + `implement.md`.
-- Planning must be persisted to task artifacts; checks must run before reporting completion.
+- `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`. Under `codex-inline`, load `trellis-before-dev` before editing and `trellis-check` after instead.
 
 ### Loading Step Detail
 
-At each step, run this to fetch detailed guidance:
-
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode phase --step <step>
-# e.g. python3 ./.trellis/scripts/get_context.py --mode phase --step 1.1
+python3 ./.trellis/scripts/get_context.py --mode phase --step <step>  # e.g. --step 1.1
 ```
 
 ---
@@ -364,7 +341,7 @@ Return to this step whenever requirements change and revise the relevant artifac
 
 Research can happen at any time during requirement exploration. It isn't limited to local code — you can use any available tool (MCP servers, skills, web search, etc.) to look up external information, including third-party library docs, industry practices, API references, etc.
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
 Spawn the research sub-agent:
 
@@ -372,13 +349,13 @@ Spawn the research sub-agent:
 - **Task description**: Research <specific question>
 - **Key requirement**: Research output MUST be persisted to `{TASK_DIR}/research/`
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
-[codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[codex-inline]
 
 Do the research in the main session directly and write findings into `{TASK_DIR}/research/`. `codex-inline` is the explicit mode that keeps work in the main session.
 
-[/codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[/codex-inline]
 
 **Research artifact conventions**:
 - One file per research topic (e.g. `research/auth-library-comparison.md`)
@@ -391,7 +368,7 @@ Brainstorm and research can interleave freely — pause to research a technical 
 
 #### 1.3 Configure context `[required · once]`
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
 Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the right spec/research context. These files were seeded on `task create` with a single self-describing `_example` line; your job here is to fill in real entries.
 
@@ -436,13 +413,13 @@ Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one r
 
 Skip this step only when both files already have real curated entries.
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
-[codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[codex-inline]
 
 Skip this step. Context is loaded directly by the `trellis-before-dev` skill in Phase 2.
 
-[/codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[/codex-inline]
 
 #### 1.4 Activate task `[required · once]`
 
@@ -469,11 +446,11 @@ If `task.py start` errors with a session-identity message (no context key from h
 | `design.md` exists (complex tasks) | ✅ |
 | `implement.md` exists (complex tasks) | ✅ |
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
 | `implement.jsonl` and `check.jsonl` each contain at least one real curated entry (seed row does not count) | ✅ |
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
 ---
 
@@ -483,7 +460,7 @@ Goal: turn reviewed planning artifacts into code that passes quality checks.
 
 #### 2.1 Implement `[required · repeatable]`
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
 Spawn the implement sub-agent:
 
@@ -496,37 +473,9 @@ The platform hook/plugin auto-handles:
 - Injects `prd.md`, `design.md` if present, and `implement.md` if present
 - For Codex, `SubagentStart` supplies native context injection; the agent profile keeps child-side loading as the fallback
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
-[Gemini, Qoder, Copilot, Reasonix, Trae, Grok, Kimi Code]
-
-Spawn the implement sub-agent:
-
-- **Agent type**: `trellis-implement`
-- **Task description**: Implement the reviewed task artifacts, consulting materials under `{TASK_DIR}/research/`; finish by running project lint and type-check
-- **Dispatch prompt guard**: The prompt MUST start with `Active task: <task path>`, then explicitly say the spawned agent is already `trellis-implement` and must implement directly without spawning another `trellis-implement` / `trellis-check`.
-
-The pull-based sub-agent definition auto-handles the context load requirement:
-- Resolves the active task with `task.py current --source`, then reads `prd.md`, `design.md` if present, and `implement.md` if present
-- Reads `implement.jsonl` and requires the agent to load each referenced spec/research file before coding
-
-[/Gemini, Qoder, Copilot, Reasonix, Trae, Grok, Kimi Code]
-
-[Kiro]
-
-Spawn the implement sub-agent:
-
-- **Agent type**: `trellis-implement`
-- **Task description**: Implement the reviewed task artifacts, consulting materials under `{TASK_DIR}/research/`; finish by running project lint and type-check
-- **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-implement` sub-agent and must implement directly, not spawn another `trellis-implement` / `trellis-check`.
-
-The platform prelude auto-handles the context load requirement:
-- Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
-- Injects `prd.md`, `design.md` if present, and `implement.md` if present
-
-[/Kiro]
-
-[codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[codex-inline]
 
 1. Load the `trellis-before-dev` skill to read project guidelines
 2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present
@@ -534,11 +483,11 @@ The platform prelude auto-handles the context load requirement:
 4. Implement the code per reviewed artifacts
 5. Run project lint and type-check
 
-[/codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[/codex-inline]
 
 #### 2.2 Quality check `[required · repeatable]`
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
 Spawn the check sub-agent:
 
@@ -552,9 +501,9 @@ The check agent's job:
 - Auto-fix issues it finds
 - Run lint and typecheck to verify
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
-[codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[codex-inline]
 
 Load the `trellis-check` skill and verify the code per its guidance:
 - Spec compliance
@@ -563,7 +512,7 @@ Load the `trellis-check` skill and verify the code per its guidance:
 
 If issues are found → fix → re-check, until green.
 
-[/codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
+[/codex-inline]
 
 **Final pass (before Phase 3.4 commit)**: the last 2.2 of a task must run full-scope, not just on the latest implement chunk. List all affected packages with `python3 ./.trellis/scripts/get_context.py --mode packages`, then load each package's spec index Quality Check section. This catches cross-layer / multi-package issues a mid-iteration local 2.2 cannot.
 
@@ -615,7 +564,7 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
    ```bash
    git log --oneline -5
    ```
-   Note the prefix convention (`feat:` / `fix:` / `chore:` / `docs:` ...), language (中文/English), and length style.
+   Note the prefix convention (`feat:` / `fix:` / `chore:` / `docs:` ...), language (Chinese/English), and length style.
 
 3. **Classify dirty files into two groups**:
    - **AI-edited this session** — files you wrote/edited via Edit/Write/Bash tool calls in this session. You know what changed and why.
@@ -636,12 +585,12 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
      - <file>
      - <file>
 
-   Reply 'ok' / '行' to execute. Reply with edits, or '我自己来' / 'manual' to abort.
+   Reply 'ok' to execute. Reply with edits, or 'manual' to abort.
    ```
 
 6. **On confirmation**: run `git add <files>` + `git commit -m "<msg>"` for each batch in order. Do not amend. Do not push.
 
-7. **On rejection** (user replies "不行" / "我自己来" / "manual" / any pushback on the plan): stop. Do not attempt a second plan. The user will commit by hand; you skip ahead to 3.5 once they confirm.
+7. **On rejection** (user replies "no" / "manual" / any pushback on the plan): stop. Do not attempt a second plan. The user will commit by hand; you skip ahead to 3.5 once they confirm.
 
 **Rules**:
 - No `git commit --amend` anywhere — three-stage three-commit flow (work commits → archive commit → journal commit).

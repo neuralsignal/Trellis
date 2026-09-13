@@ -1,6 +1,6 @@
 /**
  * Shared utilities for platform template modules.
- * Eliminates boilerplate across qoder/, codebuddy/, droid/, cursor/, gemini/, kiro/ index.ts files.
+ * Eliminates boilerplate across the per-platform index.ts files.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -21,7 +21,6 @@ export interface TemplateReader {
   readTemplate: (relativePath: string) => string;
   listFiles: (dir: string) => string[];
   listMdAgents: (dir?: string) => AgentTemplate[];
-  listJsonAgents: (dir?: string) => AgentTemplate[];
   getSettings: (filename?: string) => HookTemplate;
   getConfig: (filename: string) => string;
 }
@@ -59,16 +58,6 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
       }));
   }
 
-  /** Read all .json agent files from a subdirectory (Kiro) */
-  function listJsonAgents(dir = "agents"): AgentTemplate[] {
-    return listFiles(dir)
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => ({
-        name: f.replace(".json", ""),
-        content: readTemplate(`${dir}/${f}`),
-      }));
-  }
-
   /** Read settings.json and return as HookTemplate */
   function getSettings(filename = "settings.json"): HookTemplate {
     return { targetPath: filename, content: readTemplate(filename) };
@@ -83,7 +72,6 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
     readTemplate,
     listFiles,
     listMdAgents,
-    listJsonAgents,
     getSettings,
     getConfig,
   };

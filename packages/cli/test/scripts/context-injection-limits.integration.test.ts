@@ -172,7 +172,7 @@ describe.skipIf(!hasPython())(
           "print(get_context_injection_limits(REPO_ROOT))",
         );
         expect(out.trim()).toBe(
-          "{'max_file_bytes': 32768, 'max_artifact_bytes': 65536, 'max_total_bytes': 131072}",
+          "{'max_file_bytes': 8192, 'max_artifact_bytes': 16384, 'max_total_bytes': 32768}",
         );
       });
 
@@ -182,7 +182,7 @@ describe.skipIf(!hasPython())(
           "print(get_context_injection_limits(REPO_ROOT))",
         );
         expect(out.trim()).toBe(
-          "{'max_file_bytes': 32768, 'max_artifact_bytes': 65536, 'max_total_bytes': 131072}",
+          "{'max_file_bytes': 8192, 'max_artifact_bytes': 16384, 'max_total_bytes': 32768}",
         );
       });
 
@@ -239,7 +239,7 @@ print(get_context_injection_limits(Path(${JSON.stringify(tmp)}))["max_file_bytes
           encoding: "utf-8",
         });
         expect(r.status).toBe(0);
-        expect(r.stdout.trim()).toBe("32768");
+        expect(r.stdout.trim()).toBe("8192");
         expect(r.stderr).toContain("invalid context_injection.max_file_bytes");
       });
 
@@ -267,7 +267,7 @@ print(get_context_injection_limits(Path(${JSON.stringify(tmp)}))["max_artifact_b
           encoding: "utf-8",
         });
         expect(r.status).toBe(0);
-        expect(r.stdout.trim()).toBe("65536");
+        expect(r.stdout.trim()).toBe("16384");
         expect(r.stderr).toContain(
           "invalid context_injection.max_artifact_bytes",
         );
@@ -486,10 +486,10 @@ print("all-valid")
           `print(mod.get_implement_context(REPO_ROOT, ${JSON.stringify(relTask)}))`,
         );
         expect(Buffer.byteLength(out, "utf-8")).toBeLessThanOrEqual(
-          128 * 1024 + 256, // total cap + slack for the wrapping print()/notices
+          32 * 1024 + 256, // total cap + slack for the wrapping print()/notices
         );
         expect(out).toContain(
-          "[Trellis: truncated at 32768 bytes — read big.txt for the full content]",
+          "[Trellis: truncated at 8192 bytes — read big.txt for the full content]",
         );
       });
 

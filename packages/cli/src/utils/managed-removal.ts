@@ -12,11 +12,6 @@ import path from "node:path";
 import { DIR_NAMES, FILE_NAMES } from "../constants/paths.js";
 import { ALL_MANAGED_DIRS } from "../configurators/index.js";
 import {
-  COPILOT_INSTRUCTIONS_BLOCK_END,
-  COPILOT_INSTRUCTIONS_BLOCK_START,
-  COPILOT_INSTRUCTIONS_PATH,
-} from "../templates/copilot/index.js";
-import {
   scrubCodexConfigToml,
   scrubHooksJson,
   scrubManagedMarkdownBlock,
@@ -163,17 +158,7 @@ export function assertSafeManagedPath(
  */
 export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
   const specs: StructuredFileSpec[] = [
-    ...(
-      [
-        ".claude/settings.json",
-        ".gemini/settings.json",
-        ".factory/settings.json",
-        ".codebuddy/settings.json",
-        ".qoder/settings.json",
-        ".codex/hooks.json",
-        ".trae/hooks.json",
-      ] as const
-    ).map(
+    ...([".claude/settings.json", ".codex/hooks.json"] as const).map(
       (posixPath): StructuredFileSpec => ({
         posixPath,
         reason: "Strip trellis hooks; preserve user fields",
@@ -181,7 +166,7 @@ export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
           scrubHooksJson(content, deletedPaths, "nested"),
       }),
     ),
-    ...([".cursor/hooks.json", ".github/copilot/hooks.json"] as const).map(
+    ...([".cursor/hooks.json"] as const).map(
       (posixPath): StructuredFileSpec => ({
         posixPath,
         reason: "Strip trellis hooks; preserve user fields",
@@ -204,16 +189,6 @@ export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
       posixPath: ".codex/config.toml",
       reason: "Remove trellis project_doc_fallback_filenames and notes",
       scrub: (content) => scrubCodexConfigToml(content),
-    },
-    {
-      posixPath: COPILOT_INSTRUCTIONS_PATH,
-      reason: "Remove Trellis Copilot guidance; preserve repo instructions",
-      scrub: (content) =>
-        scrubManagedMarkdownBlock(
-          content,
-          COPILOT_INSTRUCTIONS_BLOCK_START,
-          COPILOT_INSTRUCTIONS_BLOCK_END,
-        ),
     },
     {
       posixPath: FILE_NAMES.AGENTS,

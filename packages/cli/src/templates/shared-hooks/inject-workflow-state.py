@@ -5,12 +5,8 @@ Runs on every user prompt. Resolves the active task through Trellis'
 session-aware active task resolver and emits a short <workflow-state>
 block reminding the main AI what task is active and its expected flow.
 
-The emitted ``hookEventName`` field is platform-aware: most hosts expect
-``UserPromptSubmit`` (Claude Code naming, also accepted by Cursor / Qoder /
-CodeBuddy / Droid / Codex / Copilot wiring), but Gemini CLI 0.40.x renamed
-its per-turn event to ``BeforeAgent`` and its schema validator rejects the
-legacy name. ``_detect_platform`` picks the right value at runtime.
-Breadcrumb text is pulled exclusively from workflow.md
+The emitted ``hookEventName`` is ``UserPromptSubmit`` — the Claude Code name,
+also accepted by the Cursor and Codex wiring. Breadcrumb text is pulled exclusively from workflow.md
 [workflow-state:STATUS] tag blocks — workflow.md is the single source of
 truth. There are no fallback dicts in this script: when workflow.md is
 missing or a tag is absent, the breadcrumb degrades to a generic
@@ -18,14 +14,10 @@ missing or a tag is absent, the breadcrumb degrades to a generic
 the broken state instead of the hook silently masking it.
 
 Which platforms register this hook is decided by SHARED_HOOKS_BY_PLATFORM
-in templates/shared-hooks/index.ts — currently Claude, Codex, Gemini,
-Qoder, Copilot, CodeBuddy, Droid, Kiro, Trae and ZCode. That table is the
-source of truth; each listed platform's collect<Platform>Templates() pulls
-this file into its template map through collectSharedHooks(), and a single
-writer puts that map on disk at init time. Kiro wires this via the CLI
-custom agent's ``hooks.userPromptSubmit`` and the IDE ``.kiro.hook``
-``promptSubmit`` event; its output branch emits a plain-text breadcrumb
-(Kiro adds hook stdout directly to the conversation context).
+in templates/shared-hooks/index.ts — currently Claude, Cursor and Codex.
+That table is the source of truth; each listed platform's
+collect<Platform>Templates() pulls this file into its template map through
+collectSharedHooks(), and a single writer puts that map on disk at init time.
 
 Silent exit 0 case (no output):
   - No .trellis/ directory found (not a Trellis project)
@@ -101,24 +93,13 @@ def find_trellis_root(start: Path) -> Optional[Path]:
 def _detect_platform(input_data: dict) -> str | None:
     if isinstance(input_data.get("cursor_version"), str):
         return "cursor"
-    # CLAUDE_PROJECT_DIR is a compatibility alias that several hosts set
-    # alongside their own variable — CodeBuddy, ZCode and Trae all do. It must
-    # therefore be checked LAST, or every one of them is detected as claude and
-    # the context key becomes `claude_<their-session-id>`. That key does not
-    # match the session file `task.py start` wrote under the host's real name,
-    # so every turn reports no_task while the pointer exists on disk.
-    # Observed on CodeBuddy IDE 4.10.4: session file `codebuddy_ae54840e….json`
-    # alongside marker `update-check-claude_ae54840e….marker`, same id.
+    # CLAUDE_PROJECT_DIR is a compatibility alias other hosts may also set, so
+    # it is checked LAST: a host detected as claude gets context key
+    # `claude_<its-session-id>`, which does not match the session file
+    # `task.py start` wrote under the host's real name, and every turn then
+    # reports no_task while the pointer exists on disk.
     env_map = {
-        "ZCODE_PROJECT_DIR": "zcode",
         "CURSOR_PROJECT_DIR": "cursor",
-        "CODEBUDDY_PROJECT_DIR": "codebuddy",
-        "FACTORY_PROJECT_DIR": "droid",
-        "GEMINI_PROJECT_DIR": "gemini",
-        "QODER_PROJECT_DIR": "qoder",
-        "KIRO_PROJECT_DIR": "kiro",
-        "COPILOT_PROJECT_DIR": "copilot",
-        "TRAE_PROJECT_DIR": "trae",
         # Last: the shared alias, only meaningful once no vendor key matched.
         "CLAUDE_PROJECT_DIR": "claude",
     }
@@ -132,20 +113,6 @@ def _detect_platform(input_data: dict) -> str | None:
         return "cursor"
     if ".codex" in script_parts:
         return "codex"
-    if ".gemini" in script_parts:
-        return "gemini"
-    if ".qoder" in script_parts:
-        return "qoder"
-    if ".codebuddy" in script_parts:
-        return "codebuddy"
-    if ".factory" in script_parts:
-        return "droid"
-    if ".kiro" in script_parts:
-        return "kiro"
-    if ".trae" in script_parts:
-        return "trae"
-    if ".zcode" in script_parts:
-        return "zcode"
     return None
 
 
@@ -387,7 +354,7 @@ def build_breadcrumb(
 def _load_hook_input() -> dict:
     """Read hook JSON without trusting host runners to close stdin.
 
-    Kiro IDE `runCommand` and similar hook runners can leave stdin open while
+    Some IDE hook runners can leave stdin open while
     sending no payload. A plain `json.load(sys.stdin)` then blocks forever.
     Normal hook runners write the complete JSON payload and close stdin, so the
     short daemon read preserves that path while failing closed to `{}` for
@@ -459,24 +426,9 @@ def main() -> int:
         parts.append(breadcrumb)
         breadcrumb = "\n\n".join(parts)
 
-    # Kiro (CLI userPromptSubmit / IDE promptSubmit) adds a hook's stdout
-    # directly to the conversation context — no JSON envelope. Emit the bare
-    # breadcrumb text. Conditionally isolated: all other platforms keep the
-    # hookSpecificOutput JSON path below unchanged.
-    if platform == "kiro":
-        print(breadcrumb)
-        return 0
-
-    # Gemini CLI 0.40.x rejects "UserPromptSubmit" — its per-turn event is
-    # named "BeforeAgent". Other platforms (Claude/Cursor/Qoder/CodeBuddy/
-    # Droid/Codex/Copilot) accept the original Claude-style name.
-    hook_event_name = (
-        "BeforeAgent" if platform == "gemini" else "UserPromptSubmit"
-    )
-
     output = {
         "hookSpecificOutput": {
-            "hookEventName": hook_event_name,
+            "hookEventName": "UserPromptSubmit",
             "additionalContext": breadcrumb,
         }
     }

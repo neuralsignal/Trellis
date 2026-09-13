@@ -171,7 +171,8 @@ export function resolvePlaceholders(
 /**
  * Resolve placeholders for files written under `.agents/skills/` (the shared
  * Agent Skills directory consumed by multiple platforms via the upstream
- * `.agents/skills/` workspace alias — Codex, Gemini CLI 0.40+, etc.).
+ * `.agents/skills/` workspace alias — Codex and Pi here, plus Amp and other
+ * readers of the agentskills.io standard).
  *
  * Identical to {@link resolvePlaceholders} except that {@link CMD_REF} is
  * rendered in a platform-neutral form (`` `name` (Trellis command) ``)
@@ -180,7 +181,7 @@ export function resolvePlaceholders(
  * from `common/skills/`, so
  * neutralizing it makes the rendered SKILL.md files byte-identical regardless
  * of which Trellis configurator wrote them — eliminating the
- * "last-writer-wins" collision when both Codex and Gemini target
+ * "last-writer-wins" collision when both Codex and Pi target
  * `.agents/skills/`.
  *
  * `{{CLI_FLAG}}`, `{{EXECUTOR_AI}}`, `{{USER_ACTION_LABEL}}`, conditionals,
@@ -257,7 +258,8 @@ const SKILL_DESCRIPTIONS: Record<string, string> = {
 
 /**
  * Wrap resolved template content with YAML frontmatter for skill format.
- * Used by platforms that use SKILL.md (Codex, Kiro, Qoder, etc.).
+ * Used by platforms that use SKILL.md (Codex, and any platform whose skill
+ * root is `.agents/skills/`).
  */
 export function wrapWithSkillFrontmatter(
   name: string,
@@ -299,8 +301,8 @@ export function wrapWithCommandFrontmatter(
   }
   // JSON.stringify produces a double-quoted YAML scalar, which is safe even
   // when the description contains a colon (an unquoted plain scalar cannot
-  // contain ": " — some parsers reject it outright, e.g. Trae CLI's SlashCommand
-  // schema; others silently truncate at the second colon).
+  // contain ": " — some slash-command schemas reject it outright, others
+  // silently truncate at the second colon).
   return `---\nname: ${name}\ndescription: ${JSON.stringify(
     description,
   )}\n---\n\n${content}`;
@@ -376,17 +378,13 @@ export interface ResolvedSkillFile {
  * Filter command templates based on platform capabilities.
  *
  * `start.md` is stripped only on platforms that are BOTH `agentCapable` AND
- * `hasHooks` — those platforms (Claude Code, Cursor, Kiro, Gemini, Qoder,
- * CodeBuddy, Copilot, Droid, Pi) have a SessionStart-style hook that
+ * `hasHooks` — Claude Code, Cursor and Pi have a SessionStart-style hook that
  * auto-injects the workflow overview, so a user-facing `start` would be
  * redundant.
  *
- * `agentCapable && !hasHooks` platforms (Codex, ZCode, OpenCode, Reasonix, Grok)
- * have no such hook (or use an out-of-band plugin), so they need the
- * user-invocable `trellis-start` skill / `start.md` command as fallback.
- * Snow is class-1 (`hasHooks: true`) with auto inject + project agents.
- * Agent-less platforms (Kilo, Antigravity, Devin) also keep `start` since
- * they rely entirely on user-triggered workflows.
+ * `agentCapable && !hasHooks` platforms (Codex, OpenCode) have no such hook
+ * (or use an out-of-band plugin), so they need the user-invocable
+ * `trellis-start` skill / `start.md` command as fallback.
  */
 function filterCommands(
   templates: CommonTemplate[],
@@ -400,7 +398,7 @@ function filterCommands(
 
 /**
  * Resolve ALL templates as skills with trellis- prefix.
- * Used by skill-only platforms (Kiro, Qoder, Codex) where everything is a skill.
+ * Used by skill-only platforms (Codex) where everything is a skill.
  *
  * `start` is filtered out on agent-capable platforms — the session-start hook
  * injects the workflow overview instead.
@@ -450,7 +448,7 @@ export function resolveSkills(ctx: TemplateContext): ResolvedTemplate[] {
  * Same as {@link resolveSkills} but uses {@link resolvePlaceholdersNeutral}
  * so the rendered SKILL.md files are byte-identical across any two platforms
  * that target `.agents/skills/`. Use this for shared `.agents/skills/`
- * writes (Gemini); platform-private skill roots should keep
+ * writes (Codex, Pi); platform-private skill roots should keep
  * {@link resolveSkills}.
  */
 export function resolveSkillsNeutral(ctx: TemplateContext): ResolvedTemplate[] {
@@ -604,7 +602,7 @@ export function collectBothTemplates(
 
 // ---------------------------------------------------------------------------
 // Pull-based sub-agent prelude (for class-2 platforms whose hook can't
-// inject sub-agent prompts: gemini, qoder, codex, copilot)
+// inject sub-agent prompts: codex)
 //
 // Only implement & check need task-level context (task artifacts + jsonl specs).
 // research is orthogonal: it searches the spec tree and doesn't depend on an

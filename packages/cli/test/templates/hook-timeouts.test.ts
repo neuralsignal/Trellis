@@ -4,7 +4,7 @@
  * Windows Python cold start + session-start.py + nested subprocess calls
  * routinely exceed 10s, causing silent SessionStart drops. The defaults were
  * bumped from 10/5 seconds to 30/15 seconds across all hook-based platforms
- * (gemini uses milliseconds: 30000/15000). This test iterates the platform
+ * This test iterates the platform
  * config list dynamically so future drift surfaces immediately.
  */
 import { describe, expect, it } from "vitest";
@@ -26,12 +26,9 @@ const TEMPLATES_ROOT = join(
  *
  * - `sessionStartEvent`: null when the platform has no SessionStart hook
  *   (codex). Used to look up entries in `parsed.hooks[event]`.
- * - `userPromptEvent`: event key for the inject-workflow-state hook (varies:
- *   `UserPromptSubmit`, `BeforeAgent`, `userPromptSubmitted`,
- *   `beforeSubmitPrompt`).
- * - `sessionStartTimeoutField` / `userPromptTimeoutField`: usually "timeout";
- *   copilot uses `timeoutSec` for its userPromptSubmitted event only.
- * - `unit`: "ms" for gemini; "s" for everything else.
+ * - `userPromptEvent`: event key for the inject-workflow-state hook.
+ * - `sessionStartTimeoutField` / `userPromptTimeoutField`: "timeout".
+ * - `unit`: "s".
  *
  * Add new hook-based platforms here when introduced.
  */
@@ -44,58 +41,6 @@ const PLATFORM_HOOK_CONFIGS = [
     sessionStartTimeoutField: "timeout",
     userPromptEvent: "UserPromptSubmit",
     userPromptTimeoutField: "timeout",
-    unit: "s",
-  },
-  {
-    platform: "codebuddy",
-    path: "codebuddy/settings.json",
-    schema: "nested",
-    sessionStartEvent: "SessionStart",
-    sessionStartTimeoutField: "timeout",
-    userPromptEvent: "UserPromptSubmit",
-    userPromptTimeoutField: "timeout",
-    unit: "s",
-  },
-  {
-    platform: "droid",
-    path: "droid/settings.json",
-    schema: "nested",
-    sessionStartEvent: "SessionStart",
-    sessionStartTimeoutField: "timeout",
-    userPromptEvent: "UserPromptSubmit",
-    userPromptTimeoutField: "timeout",
-    unit: "s",
-  },
-  {
-    platform: "qoder",
-    path: "qoder/settings.json",
-    schema: "nested",
-    sessionStartEvent: "SessionStart",
-    sessionStartTimeoutField: "timeout",
-    userPromptEvent: "UserPromptSubmit",
-    userPromptTimeoutField: "timeout",
-    unit: "s",
-  },
-  {
-    platform: "gemini",
-    path: "gemini/settings.json",
-    schema: "nested",
-    sessionStartEvent: "SessionStart",
-    sessionStartTimeoutField: "timeout",
-    userPromptEvent: "BeforeAgent",
-    userPromptTimeoutField: "timeout",
-    unit: "ms",
-  },
-  {
-    // Copilot is unique: SessionStart uses `timeout` (seconds), while
-    // userPromptSubmitted uses `timeoutSec`. Both still in seconds.
-    platform: "copilot",
-    path: "copilot/hooks.json",
-    schema: "flat",
-    sessionStartEvent: "SessionStart",
-    sessionStartTimeoutField: "timeout",
-    userPromptEvent: "userPromptSubmitted",
-    userPromptTimeoutField: "timeoutSec",
     unit: "s",
   },
   {

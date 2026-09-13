@@ -1342,18 +1342,18 @@ describe("opencode context injection limits (issue #441)", () => {
   describe("readContextInjectionLimits", () => {
     it("returns built-in defaults when config.yaml is absent", () => {
       expect(readContextInjectionLimits(dir)).toEqual({
-        max_file_bytes: 32768,
-        max_artifact_bytes: 65536,
-        max_total_bytes: 131072,
+        max_file_bytes: 8192,
+        max_artifact_bytes: 16384,
+        max_total_bytes: 32768,
       });
     });
 
     it("returns built-in defaults when config.yaml has no context_injection section", () => {
       writeConfig("session_auto_commit: true\n");
       expect(readContextInjectionLimits(dir)).toEqual({
-        max_file_bytes: 32768,
-        max_artifact_bytes: 65536,
-        max_total_bytes: 131072,
+        max_file_bytes: 8192,
+        max_artifact_bytes: 16384,
+        max_total_bytes: 32768,
       });
     });
 
@@ -1380,14 +1380,14 @@ describe("opencode context injection limits (issue #441)", () => {
 
     it("falls back to default for a negative value", () => {
       writeConfig(["context_injection:", "  max_file_bytes: -5"].join("\n"));
-      expect(readContextInjectionLimits(dir).max_file_bytes).toBe(32768);
+      expect(readContextInjectionLimits(dir).max_file_bytes).toBe(8192);
     });
 
     it("falls back to default for a non-integer value", () => {
       writeConfig(
         ["context_injection:", "  max_artifact_bytes: not-a-number"].join("\n"),
       );
-      expect(readContextInjectionLimits(dir).max_artifact_bytes).toBe(65536);
+      expect(readContextInjectionLimits(dir).max_artifact_bytes).toBe(16384);
     });
   });
 
@@ -1473,19 +1473,19 @@ describe("opencode context injection limits (issue #441)", () => {
       const prompt = await runImplementHook();
 
       expect(Buffer.byteLength(prompt, "utf-8")).toBeLessThanOrEqual(
-        128 * 1024 + 4096, // total cap + slack for the prompt template/notices
+        32 * 1024 + 4096, // total cap + slack for the prompt template/notices
       );
       expect(prompt).toContain(
-        "[Trellis: truncated at 32768 bytes — read big.txt for the full content]",
+        "[Trellis: truncated at 8192 bytes — read big.txt for the full content]",
       );
     });
 
-    it("never splits a multi-byte UTF-8 sequence at the 32768-byte cut point", async () => {
-      // 32767 ASCII bytes + Chinese text: the default cap lands inside the
+    it("never splits a multi-byte UTF-8 sequence at the 8192-byte cut point", async () => {
+      // 8191 ASCII bytes + Chinese text: the default cap lands inside the
       // first 3-byte character and must back off, not emit mojibake.
       writeFileSync(
         join(dir, "zh.md"),
-        "a".repeat(32767) + "中文内容",
+        "a".repeat(8191) + "中文内容",
         "utf-8",
       );
       writeJsonlEntries([{ file: "zh.md", reason: "zh" }]);
@@ -1494,8 +1494,8 @@ describe("opencode context injection limits (issue #441)", () => {
 
       expect(prompt).not.toContain("�");
       expect(prompt).toContain(
-        "a".repeat(32767) +
-          "\n[Trellis: truncated at 32768 bytes — read zh.md for the full content]",
+        "a".repeat(8191) +
+          "\n[Trellis: truncated at 8192 bytes — read zh.md for the full content]",
       );
     });
 
@@ -1508,10 +1508,10 @@ describe("opencode context injection limits (issue #441)", () => {
 
       const prompt = await runImplementHook();
 
-      expect(prompt).toContain("P".repeat(65536));
-      expect(prompt).not.toContain("P".repeat(65537));
+      expect(prompt).toContain("P".repeat(16384));
+      expect(prompt).not.toContain("P".repeat(16385));
       expect(prompt).toContain(
-        "[Trellis: truncated at 65536 bytes — read .trellis/tasks/demo-task/prd.md for the full content]",
+        "[Trellis: truncated at 16384 bytes — read .trellis/tasks/demo-task/prd.md for the full content]",
       );
     });
 
@@ -1560,7 +1560,7 @@ describe("opencode context injection limits (issue #441)", () => {
     });
 
     it("max_file_bytes: 0 and max_total_bytes: 0 restore fully unlimited inlining", async () => {
-      const bigContent = "Z".repeat(40000); // over the 32768 default file cap
+      const bigContent = "Z".repeat(40000); // over the 8192 default file cap
       writeFileSync(join(dir, "big.txt"), bigContent, "utf-8");
       writeJsonlEntries([{ file: "big.txt", reason: "big" }]);
       writeConfig(
@@ -1588,7 +1588,7 @@ describe("opencode context injection limits (issue #441)", () => {
       const prompt = await runImplementHook();
 
       expect(prompt).toContain(
-        "[Trellis: truncated at 32768 bytes — read big.txt for the full content]",
+        "[Trellis: truncated at 8192 bytes — read big.txt for the full content]",
       );
     });
 

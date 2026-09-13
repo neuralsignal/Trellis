@@ -8,7 +8,7 @@ whenever the pending command calls `task.py start/current/finish`, and the
 task script consumes it when it has no native session environment.
 
 Registered on whichever pre-shell event the host provides — Cursor's
-`beforeShellExecution`, Claude-shaped `PreToolUse`, Gemini's `BeforeTool` —
+`beforeShellExecution` and Claude-shaped `PreToolUse` —
 which is why the only thing here that knows about payload variation is
 `_pending_shell_command`.
 """
@@ -68,7 +68,7 @@ def _string_value(value: Any) -> str | None:
 def _resolve_trellis_root(hook_input: dict[str, Any]) -> Path | None:
     """Locate the project root, trying the payload cwd and then our own.
 
-    Hosts disagree about what `cwd` means. CodeBuddy IDE 4.10.4 sends `"/"` for
+    Hosts disagree about what `cwd` means. Some IDE hosts send `"/"` for
     every PreToolUse event, so trusting the payload alone finds no `.trellis`
     and the bridge silently does nothing — the hook is invoked, writes no
     ticket, and `task.py start` degrades. Observed with a wildcard probe:
@@ -142,7 +142,7 @@ def _host_platform_name() -> str | None:
     """Name the host from the config directory this hook was installed into.
 
     Every platform puts its hooks under its own dotted directory
-    (`.cursor/hooks/`, `.factory/hooks/`, …), so the deepest dotted path
+    (`.cursor/hooks/`, `.claude/hooks/`, …), so the deepest dotted path
     segment identifies the host without a table of platform names here. It
     matters because the context key must agree with the one the platform's
     other hooks compute — a ticket keyed differently would write a session
@@ -230,8 +230,8 @@ def _write_ticket(
         "session_id": _string_value(hook_input.get("session_id")),
         "generation_id": _string_value(hook_input.get("generation_id")),
         # The resolved project root, not the payload's cwd. The consumer
-        # rejects a ticket whose cwd is outside the repo, and CodeBuddy IDE
-        # 4.10.4 reports "/" for every PreToolUse event — a ticket carrying
+        # rejects a ticket whose cwd is outside the repo, and some IDE hosts
+        # report "/" for every PreToolUse event — a ticket carrying
         # that is written correctly and then discarded on arrival. Recording
         # the root we actually resolved keeps the containment check meaningful
         # without trusting a field the host may not populate.

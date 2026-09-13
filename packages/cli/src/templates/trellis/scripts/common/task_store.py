@@ -238,24 +238,12 @@ def _restore_child_links(unlinked: dict[Path, str | None]) -> None:
 # Keep in sync with src/types/ai-tools.ts AI_TOOLS entries — these are the
 # platforms listed in workflow.md's "agent-capable" Skill Routing block.
 # Codex is checked separately because explicit inline mode does not consume
-# JSONL. Kilo / Antigravity / Devin are NOT in this list either: they load
-# specs through skills instead of JSONL.
+# JSONL.
 _SUBAGENT_CONFIG_DIRS: tuple[str, ...] = (
     ".claude",
     ".cursor",
-    ".kiro",
-    ".gemini",
     ".opencode",
-    ".qoder",
-    ".codebuddy",
-    ".factory",   # Factory Droid
-    ".github/copilot",
     ".pi",        # Pi Agent
-    ".trae",      # Trae IDE
-    ".omp",       # Oh My Pi
-    ".zcode",     # ZCode
-    ".grok",      # Grok Build
-    ".kimi-code", # Kimi Code
 )
 _CODEX_CONFIG_DIR = ".codex"
 
@@ -579,9 +567,9 @@ def cmd_create(args: argparse.Namespace) -> int:
     # platforms. They stay empty until the agent curates real entries during
     # planning — a placeholder row would read as unresolved scaffolding to
     # `task.py validate` and to PR preflight, so the curation instructions go
-    # to the console below instead of into the files. Agent-less platforms
-    # (Kilo / Antigravity / Devin) skip this — they load specs via the
-    # trellis-before-dev skill instead of JSONL.
+    # to the console below instead of into the files. Codex in explicit
+    # inline mode skips this — it loads specs via the trellis-before-dev skill
+    # instead of JSONL.
     created_jsonl = False
     if _has_subagent_platform(repo_root):
         for jsonl_name in ("implement.jsonl", "check.jsonl"):

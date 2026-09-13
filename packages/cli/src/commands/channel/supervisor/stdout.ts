@@ -57,13 +57,13 @@ export function createStdoutDrainControl(): {
 }
 
 /**
- * 按行读取 stdout，并把非空行串行交给 onLine
+ * Read stdout line by line, handing every non-empty line to onLine serially.
  *
- * @param stream 子进程 stdout 可读流
- * @param onLine stdout 单行处理器，按读取顺序串行执行
- * @param onError onLine 抛错时的错误处理器，也在同一队列中执行
- * @param signal 中止等待并排空已读取内容的可选信号
- * @returns stdout 结束且所有已排队行处理完成后 resolved 的 Promise
+ * @param stream child-process stdout readable stream
+ * @param onLine per-line handler, run serially in read order
+ * @param onError handler for a throw from onLine, run on the same queue
+ * @param signal optional signal to abort the wait and drain what was read
+ * @returns a Promise resolved once stdout ends and every queued line is done
  */
 export function pumpStdout(
   stream: Readable,
@@ -77,11 +77,7 @@ export function pumpStdout(
   let paused = false;
   let finished = false;
 
-  /**
-   * 在有待处理行时暂停 stdout 读取
-   *
-   * @returns 无返回值
-   */
+  /** Pause stdout reading while lines are still pending. */
   const pauseForBackpressure = (): void => {
     if (!paused) {
       stream.pause();
@@ -89,11 +85,7 @@ export function pumpStdout(
     }
   };
 
-  /**
-   * 在待处理行全部完成后恢复 stdout 读取
-   *
-   * @returns 无返回值
-   */
+  /** Resume stdout reading once every pending line has finished. */
   const resumeIfDrained = (): void => {
     if (paused && pending === 0) {
       paused = false;
@@ -102,10 +94,9 @@ export function pumpStdout(
   };
 
   /**
-   * 将 stdout 单行追加到串行处理队列
+   * Append one stdout line to the serial processing queue.
    *
-   * @param line 已切分出的 stdout 单行文本
-   * @returns 无返回值
+   * @param line a single line already split out of stdout
    */
   const enqueue = (line: string): void => {
     pending += 1;
@@ -121,7 +112,7 @@ export function pumpStdout(
                 err instanceof Error ? err : new Error(String(err)),
               );
             } catch {
-              // 吞掉错误处理器自身的错误
+              // Swallow a throw from the error handler itself.
             }
           }
         } finally {

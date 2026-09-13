@@ -237,15 +237,15 @@ function isInspectionCommand(t: ToolTrace) {
 }
 function thinkingIntent(text: string) {
   const s = text.toLowerCase();
-  if (/error|failed|failure|panic|exception|报错|失败|错误|异常/.test(s))
+  if (/error|failed|failure|panic|exception/.test(s))
     return "Analyzing failure cause";
-  if (/test|verify|check|typecheck|lint|验证|测试|检查/.test(s))
+  if (/test|verify|check|typecheck|lint/.test(s))
     return "Planning verification steps";
-  if (/plan|approach|design|strategy|方案|计划|思路|设计/.test(s))
+  if (/plan|approach|design|strategy/.test(s))
     return "Structuring the implementation approach";
-  if (/implement|change|edit|modify|refactor|实现|修改|重构/.test(s))
+  if (/implement|change|edit|modify|refactor/.test(s))
     return "Reasoning through code changes";
-  if (/inspect|search|locate|read|context|定位|搜索|阅读|上下文/.test(s))
+  if (/inspect|search|locate|read|context/.test(s))
     return "Locating relevant context";
   return "";
 }
@@ -763,9 +763,9 @@ interface ContextInjectionLimits {
   max_total_bytes: number;
 }
 const DEFAULT_CONTEXT_INJECTION_LIMITS: ContextInjectionLimits = {
-  max_file_bytes: 32768,
-  max_artifact_bytes: 65536,
-  max_total_bytes: 131072,
+  max_file_bytes: 8192,
+  max_artifact_bytes: 16384,
+  max_total_bytes: 32768,
 };
 
 function truncateUtf8(buf: Buffer, cap: number): Buffer {

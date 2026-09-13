@@ -173,9 +173,9 @@ def get_codex_dispatch_mode(repo_root: Path | None = None) -> str:
     return "inline"
 
 
-DEFAULT_CONTEXT_INJECTION_MAX_FILE_BYTES = 32768
-DEFAULT_CONTEXT_INJECTION_MAX_ARTIFACT_BYTES = 65536
-DEFAULT_CONTEXT_INJECTION_MAX_TOTAL_BYTES = 131072
+DEFAULT_CONTEXT_INJECTION_MAX_FILE_BYTES = 8192
+DEFAULT_CONTEXT_INJECTION_MAX_ARTIFACT_BYTES = 16384
+DEFAULT_CONTEXT_INJECTION_MAX_TOTAL_BYTES = 32768
 
 
 def get_context_injection_limits(repo_root: Path | None = None) -> dict[str, int]:
@@ -184,9 +184,9 @@ def get_context_injection_limits(repo_root: Path | None = None) -> dict[str, int
     Reads the ``context_injection:`` section of ``.trellis/config.yaml``:
 
         context_injection:
-          max_file_bytes: 32768
-          max_artifact_bytes: 65536
-          max_total_bytes: 131072
+          max_file_bytes: 8192
+          max_artifact_bytes: 16384
+          max_total_bytes: 32768
 
     ``0`` disables the corresponding limit. Missing keys use their default;
     invalid (non-int or negative) values fall back to the default for that

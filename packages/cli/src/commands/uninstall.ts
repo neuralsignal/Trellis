@@ -14,7 +14,7 @@
  *      file is fully empty afterwards, we delete it.
  *
  * Whether the user has modified a manifest-listed file or not, it is removed
- * (per the PRD: "全删"). The `.trellis/` tree is removed unconditionally.
+ * (per the PRD: "delete everything"). The `.trellis/` tree is removed unconditionally.
  */
 
 import { execFileSync } from "node:child_process";

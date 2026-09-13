@@ -131,39 +131,6 @@ describe("trellis template constants", () => {
     expect(workflowMdTemplate).toContain("#");
   });
 
-  it("marketplace native workflow mirror matches the bundled workflow", () => {
-    const repoRoot = fs.existsSync(path.join(process.cwd(), "marketplace"))
-      ? process.cwd()
-      : path.resolve(process.cwd(), "../..");
-    const marketplaceNative = fs.readFileSync(
-      path.join(repoRoot, "marketplace/workflows/native/workflow.md"),
-      "utf-8",
-    );
-    expect(marketplaceNative).toBe(workflowMdTemplate);
-  });
-
-  it("marketplace TDD workflow planning breadcrumbs include behavior gates", () => {
-    const repoRoot = fs.existsSync(path.join(process.cwd(), "marketplace"))
-      ? process.cwd()
-      : path.resolve(process.cwd(), "../..");
-    const tddWorkflow = fs.readFileSync(
-      path.join(repoRoot, "marketplace/workflows/tdd/workflow.md"),
-      "utf-8",
-    );
-    const planning = /\[workflow-state:planning\]([\s\S]*?)\[\/workflow-state:planning\]/.exec(
-      tddWorkflow,
-    )?.[1];
-    const planningInline = /\[workflow-state:planning-inline\]([\s\S]*?)\[\/workflow-state:planning-inline\]/.exec(
-      tddWorkflow,
-    )?.[1];
-
-    for (const block of [planning, planningInline]) {
-      expect(block).toContain("observable behavior slices");
-      expect(block).toContain("public interface under test");
-      expect(block).toContain("mock boundaries");
-    }
-  });
-
   it("[codex-native-subagents] workflow.md preserves the dispatch prompt for Codex native fallback", () => {
     // The in_progress breadcrumb instructs the main agent to prefix
     // dispatch prompts with "Active task: <path>". Codex uses native
@@ -174,71 +141,30 @@ describe("trellis template constants", () => {
     expect(workflowMdTemplate).toContain("native Codex `SubagentStart`");
     expect(workflowMdTemplate).toContain("child-side pull fallback");
   });
-
-  it("[codex-native-subagents] Codex uses the native hook implement block, while class-2 platforms stay pull-based", () => {
+  it("[codex-native-subagents] every registered platform has 2.1 hook-backed guidance", () => {
     const implement = stepSection("2.1");
     const hookAutoBlock = platformBlock(
       implement,
-      "[Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]",
+      "[Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]",
     );
-    const pullBasedMarker =
-      "[Gemini, Qoder, Copilot, Reasonix, Trae, Grok, Kimi Code]";
-    const pullBasedBlock = platformBlock(implement, pullBasedMarker);
-
-    const workflowLabelByPlatform: Partial<Record<AITool, string>> = {
-      gemini: "Gemini",
-      qoder: "Qoder",
-      copilot: "Copilot",
-      trae: "Trae",
-      grok: "Grok",
-      kimi: "Kimi Code",
+    // Every registered platform is class-1: its context arrives through a
+    // hook, plugin, or native SubagentStart, never a pull-based prelude the
+    // agent has to run for itself. The fork has no class-2 platforms left, so
+    // a new registry entry missing from this marker would silently ship with
+    // no 2.1 guidance at all.
+    const workflowLabelByPlatform: Record<AITool, string> = {
+      "claude-code": "Claude Code",
+      cursor: "Cursor",
+      opencode: "OpenCode",
+      codex: "codex-sub-agent",
+      pi: "Pi",
     };
-    // Pi templates keep a pull-based fallback, but workflow 2.1 routes Pi
-    // through the extension-backed context path.
-    const extensionBackedPreludeFallbackPlatforms = new Set<AITool>(["pi"]);
-    // Codex retains a child-side prelude as a compatibility fallback, but
-    // its primary workflow route is the native SubagentStart hook block.
-    const nativePushPreludeFallbackPlatforms = new Set<AITool>(["codex"]);
-    const generatedPullBasedLabels = PLATFORM_IDS.flatMap((id) => {
-      if (
-        extensionBackedPreludeFallbackPlatforms.has(id) ||
-        nativePushPreludeFallbackPlatforms.has(id)
-      ) {
-        return [];
-      }
-      const templates = collectPlatformTemplates(id);
-      const hasPullBasedPrelude =
-        templates !== undefined &&
-        [...templates.entries()].some(
-          ([filePath, content]) =>
-            /trellis-(implement|check)/.test(filePath) &&
-            content.includes("Required: Load Trellis Context First"),
-        );
-      if (!hasPullBasedPrelude) {
-        return [];
-      }
-      const label = workflowLabelByPlatform[id];
-      expect(
-        label,
-        `${id} generates pull-based agent definitions but has no workflow marker mapping`,
-      ).toBeDefined();
-      return [label as string];
-    });
-
-    const pullBasedLabels = [...generatedPullBasedLabels, "Reasonix"];
-    for (const label of pullBasedLabels) {
-      expect(pullBasedBlock, `${label} must use pull-based 2.1 guidance`).toContain(
-        label,
-      );
+    for (const id of PLATFORM_IDS) {
       expect(
         hookAutoBlock,
-        `${label} must not use hook/plugin auto-handles 2.1 guidance`,
-      ).not.toContain(label);
+        `${id} must be listed in the 2.1 hook/plugin block`,
+      ).toContain(workflowLabelByPlatform[id]);
     }
-    expect(pullBasedBlock).toContain(
-      "The pull-based sub-agent definition auto-handles the context load requirement",
-    );
-    expect(hookAutoBlock).toContain("codex-sub-agent");
     expect(hookAutoBlock).toContain("SubagentStart");
   });
 
@@ -433,9 +359,9 @@ describe("getAllAgents", () => {
 describe("configYamlTemplate: context_injection section", () => {
   it("documents the context_injection block, fully commented out", () => {
     expect(configYamlTemplate).toContain("context_injection:");
-    expect(configYamlTemplate).toContain("#   max_file_bytes: 32768");
-    expect(configYamlTemplate).toContain("#   max_artifact_bytes: 65536");
-    expect(configYamlTemplate).toContain("#   max_total_bytes: 131072");
+    expect(configYamlTemplate).toContain("#   max_file_bytes: 8192");
+    expect(configYamlTemplate).toContain("#   max_artifact_bytes: 16384");
+    expect(configYamlTemplate).toContain("#   max_total_bytes: 32768");
     // Every context_injection line must be commented — the section ships
     // inert by default (matches the codex.dispatch_mode precedent).
     const lines = configYamlTemplate.split("\n");
