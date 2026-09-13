@@ -72,17 +72,9 @@ max_journal_lines: 2000
 #   webapp:
 #     path: ./webapp
 #     git: true
-packages:
-  cli:
-    path: packages/cli
-  core:
-    path: packages/core
-  docs-site:
-    path: docs-site
-    type: submodule
 
 # Default package used when --package is not specified.
-default_package: cli
+# default_package: frontend
 
 #-------------------------------------------------------------------------------
 # Channel worker OOM guard
@@ -149,9 +141,9 @@ channel:
 # All values are byte counts. `0` disables the corresponding limit.
 #
 # context_injection:
-#   max_file_bytes: 32768        # per implement.jsonl / check.jsonl referenced file
-#   max_artifact_bytes: 65536    # per task artifact (prd.md / design.md / implement.md)
-#   max_total_bytes: 131072      # whole injected payload; overflow degrades to index lines
+#   max_file_bytes: 8192         # per implement.jsonl / check.jsonl referenced file
+#   max_artifact_bytes: 16384    # per task artifact (prd.md / design.md / implement.md)
+#   max_total_bytes: 32768       # whole injected payload; overflow degrades to index lines
 
 #-------------------------------------------------------------------------------
 # Per-turn prompt injection

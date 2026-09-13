@@ -160,15 +160,7 @@ def should_skip_injection() -> bool:
         return True
     non_interactive_vars = [
         "CLAUDE_NON_INTERACTIVE",
-        "QODER_NON_INTERACTIVE",
-        "CODEBUDDY_NON_INTERACTIVE",
-        "FACTORY_NON_INTERACTIVE",
         "CURSOR_NON_INTERACTIVE",
-        "GEMINI_NON_INTERACTIVE",
-        "KIRO_NON_INTERACTIVE",
-        "COPILOT_NON_INTERACTIVE",
-        "TRAE_NON_INTERACTIVE",
-        "ZCODE_NON_INTERACTIVE",
     ]
     return any(os.environ.get(var) == "1" for var in non_interactive_vars)
 
@@ -218,24 +210,13 @@ def _format_git_state(repo_root: Path) -> str:
 def _detect_platform(input_data: dict) -> str | None:
     if isinstance(input_data.get("cursor_version"), str):
         return "cursor"
-    # CLAUDE_PROJECT_DIR is a compatibility alias that several hosts set
-    # alongside their own variable — CodeBuddy, ZCode and Trae all do. It must
-    # therefore be checked LAST, or every one of them is detected as claude and
-    # the context key becomes `claude_<their-session-id>`. That key does not
-    # match the session file `task.py start` wrote under the host's real name,
-    # so every turn reports no_task while the pointer exists on disk.
-    # Observed on CodeBuddy IDE 4.10.4: session file `codebuddy_ae54840e….json`
-    # alongside marker `update-check-claude_ae54840e….marker`, same id.
+    # CLAUDE_PROJECT_DIR is a compatibility alias other hosts may also set, so
+    # it is checked LAST: a host detected as claude gets context key
+    # `claude_<its-session-id>`, which does not match the session file
+    # `task.py start` wrote under the host's real name, and every turn then
+    # reports no_task while the pointer exists on disk.
     env_map = {
-        "ZCODE_PROJECT_DIR": "zcode",
         "CURSOR_PROJECT_DIR": "cursor",
-        "CODEBUDDY_PROJECT_DIR": "codebuddy",
-        "FACTORY_PROJECT_DIR": "droid",
-        "GEMINI_PROJECT_DIR": "gemini",
-        "QODER_PROJECT_DIR": "qoder",
-        "KIRO_PROJECT_DIR": "kiro",
-        "COPILOT_PROJECT_DIR": "copilot",
-        "TRAE_PROJECT_DIR": "trae",
         # Last: the shared alias, only meaningful once no vendor key matched.
         "CLAUDE_PROJECT_DIR": "claude",
     }
@@ -249,20 +230,6 @@ def _detect_platform(input_data: dict) -> str | None:
         return "cursor"
     if ".codex" in script_parts:
         return "codex"
-    if ".gemini" in script_parts:
-        return "gemini"
-    if ".qoder" in script_parts:
-        return "qoder"
-    if ".codebuddy" in script_parts:
-        return "codebuddy"
-    if ".factory" in script_parts:
-        return "droid"
-    if ".kiro" in script_parts:
-        return "kiro"
-    if ".trae" in script_parts:
-        return "trae"
-    if ".zcode" in script_parts:
-        return "zcode"
     return None
 
 
@@ -833,15 +800,7 @@ def main():
     # Try platform-specific env vars, hook cwd, fallback to cwd
     project_dir_env_vars = [
         "CLAUDE_PROJECT_DIR",
-        "QODER_PROJECT_DIR",
-        "CODEBUDDY_PROJECT_DIR",
-        "FACTORY_PROJECT_DIR",
         "CURSOR_PROJECT_DIR",
-        "GEMINI_PROJECT_DIR",
-        "KIRO_PROJECT_DIR",
-        "COPILOT_PROJECT_DIR",
-        "TRAE_PROJECT_DIR",
-        "ZCODE_PROJECT_DIR",
     ]
     project_dir = None
     for var in project_dir_env_vars:
@@ -917,29 +876,19 @@ Context loaded. Follow <task-status>. Load workflow/spec/task details only when 
 
     context_text = output.getvalue()
 
-    # Kiro (CLI trellis agent agentSpawn) adds a hook's stdout directly to the
-    # conversation context — no JSON envelope. Emit the bare overview text.
-    # Conditionally isolated: all other platforms keep the JSON path below.
-    if _detect_platform(hook_input) == "kiro":
-        print(context_text, flush=True)
-        return
-
-    platform = _detect_platform(hook_input)
-    result: dict[str, object] = {
-        # Claude Code / Qoder / CodeBuddy / Droid / Gemini / Copilot / Trae /
-        # ZCode format.
-        "hookSpecificOutput": {
-            "hookEventName": "SessionStart",
-            "additionalContext": context_text,
-        },
-    }
-    # Cursor sessionStart format (top-level snake_case per Cursor docs).
-    # ZCode reads BOTH `hookSpecificOutput.additionalContext` and top-level
-    # `additional_context` without deduplication, so emitting both keys would
-    # duplicate the context in the conversation. Keep the previous shared output
-    # shape for every other platform.
-    if platform != "zcode":
-        result["additional_context"] = context_text
+    # One key, not both: a host that reads both would inject the context twice,
+    # and the payload is the largest thing this hook emits.
+    if _detect_platform(hook_input) == "cursor":
+        # Cursor sessionStart format (top-level snake_case per Cursor docs).
+        result: dict[str, object] = {"additional_context": context_text}
+    else:
+        # Claude Code format.
+        result = {
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": context_text,
+            },
+        }
 
     # Output JSON - stdout is already configured for UTF-8
     print(json.dumps(result, ensure_ascii=False), flush=True)

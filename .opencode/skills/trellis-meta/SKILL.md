@@ -12,7 +12,7 @@ Trellis v0.6 adds three architectural surfaces on top of the pre-v0.6 workflow /
 The default operating scope is local files in the user project:
 
 - `.trellis/`: workflow, config, tasks, spec, workspace, scripts, bundled runtime agents, and runtime state.
-- Platform directories: `.claude/`, `.codex/`, `.cursor/`, `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.reasonix/`, `.kilocode/`, `.agent/`, `.devin/`, `.kimi-code/`, and similar directories. Pi additionally exposes a native `trellis_subagent` tool with `single` / `parallel` / `chain` dispatch modes, throttled progress cards, and `isTrellisAgent()` validation on top of the file layout. Reasonix stores both workflow skills and subagent skills as `.reasonix/skills/<name>/SKILL.md`; subagent skills carry `runAs: subagent` frontmatter. Kimi Code keeps workflow skills in the shared `.agents/skills/` layer, delivers commands plus agent prompts as `.kimi-code/skills/<name>/SKILL.md`, and installs the same agent prompts as custom sub-agents under `.kimi-code/agents/<name>.md`.
+- Platform directories: `.claude/`, `.cursor/`, `.opencode/`, `.codex/`, `.pi/`. Pi additionally exposes a native `trellis_subagent` tool with `single` / `parallel` / `chain` dispatch modes, throttled progress cards, and `isTrellisAgent()` validation on top of the file layout.
 - Shared skill layer: `.agents/skills/`.
 - User-owned channel store outside the project tree: `~/.trellis/channels/<project>/<channel>/events.jsonl`.
 - Raw platform conversation logs queryable via `trellis mem`: `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.pi/agent/sessions/` (OpenCode adapter degraded for the v0.6 line).
@@ -43,8 +43,8 @@ Do not assume the user has the Trellis source repository. Do not default to modi
 
 ### Platform Files
 
-- `references/platform-files/overview.md`: How shared `.trellis/` files relate to platform directories and the four platform integration modes (hook-driven, agent prelude, main-session workflow, channel runtime).
-- `references/platform-files/platform-map.md`: Platform directories and paths for skills, agents, hooks, and extensions across all supported platforms including Reasonix and Pi's native `trellis_subagent` extension.
+- `references/platform-files/overview.md`: How shared `.trellis/` files relate to platform directories and the platform integration modes (hook-driven, agent prelude, channel runtime).
+- `references/platform-files/platform-map.md`: Platform directories and paths for skills, agents, hooks, and extensions across all supported platforms, including Pi's native `trellis_subagent` extension.
 - `references/platform-files/hooks-and-settings.md`: How settings/config files, hooks, plugins, and extensions connect to Trellis; covers `channel.worker_guard.*` and `codex.dispatch_mode`.
 - `references/platform-files/agents.md`: Per-platform `trellis-research` / `trellis-implement` / `trellis-check` sub-agent files plus bundled `.trellis/agents/{check,implement}.md` for the channel runtime.
 - `references/platform-files/skills-and-commands.md`: Differences between skills, commands, prompts, and workflows, plus how to change them.
@@ -71,7 +71,7 @@ Do not assume the user has the Trellis source repository. Do not default to modi
 - `.trellis/agents/{check,implement}.md` are bundled, platform-agnostic channel runtime agent definitions loaded by `trellis channel spawn --agent <name>`. Editable; `trellis update` backfills missing ones. Editing the per-platform `trellis-implement.md` / `trellis-check.md` does **not** change channel-runtime worker behavior.
 - `~/.trellis/channels/<project>/<channel>/events.jsonl` is the channel runtime event log per project per channel. User-owned, file-locked sequence numbering, durable `idempotencyKey` support; never under `.trellis/`.
 - Bundled multi-file skills (`trellis-meta`, `trellis-spec-bootstrap`, `trellis-session-insight`, `trellis-channel`) are auto-dispatched to every platform skill root by `getBundledSkillTemplates()` in `packages/cli/src/templates/common/index.ts`. Dropping a new directory under `packages/cli/src/templates/common/bundled-skills/` (upstream) ships it to every platform on the next `trellis update`.
-- Platform settings/config files decide which hooks, agents, skills, commands, prompts, and workflows actually run. Reasonix has no settings file — behavior is encoded inside skill frontmatter.
+- Platform settings/config files decide which hooks, agents, skills, commands, prompts, and workflows actually run.
 - `.trellis/.template-hashes.json` and `.trellis/.runtime/` are management/runtime state files. Confirm necessity before editing them.
 
 ## Do Not

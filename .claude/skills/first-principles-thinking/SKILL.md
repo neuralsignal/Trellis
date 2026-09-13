@@ -2,12 +2,12 @@
 name: first-principles-thinking
 description: >
   Systematic first principles thinking for any problem domain. Use when the user says
-  "analyze from first principles", "第一性原理", "从根本分析", "从零开始思考",
-  "think from scratch", "question this design", "is this the right approach",
-  "challenge assumptions", "挑战假设", "为什么要这样做", "有没有更好的方案",
-  "why are we doing it this way", or needs to evaluate decisions, designs, or strategies
-  without relying on analogies, conventions, or "best practices". Also triggers on
-  "这个设计合理吗", "从本质上看", "回到基本面", "what's really true here",
+  "analyze from first principles", "reason it out from scratch", "think from scratch",
+  "question this design", "is this the right approach", "challenge assumptions",
+  "why are we doing it this way", "is there a better option", or needs to evaluate
+  decisions, designs, or strategies without relying on analogies, conventions, or
+  "best practices". Also triggers on "does this design actually hold up",
+  "what is this fundamentally", "back to basics", "what's really true here",
   "what are we assuming", or any request to decompose a problem to its fundamentals.
 license: MIT
 metadata:
@@ -247,7 +247,7 @@ When used within a Trellis-managed project, the analysis artifacts integrate wit
 
 During `/trellis:brainstorm`, when the task is classified as "Complex":
 
-1. **Trigger**: User says "从第一性原理分析" or AI detects the problem has ≥3 unvalidated assumptions
+1. **Trigger**: User asks for a first-principles analysis, or the AI detects the problem has ≥3 unvalidated assumptions
 2. **Execute**: Run Phases 0-3, saving output to `fp-analysis.md` in task directory
 3. **Feed into PRD**:
    - Ground Truths → PRD Requirements and Constraints

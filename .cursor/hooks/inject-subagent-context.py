@@ -92,24 +92,13 @@ def _detect_platform(input_data: dict) -> str | None:
         return "codex"
     if isinstance(input_data.get("cursor_version"), str):
         return "cursor"
-    # CLAUDE_PROJECT_DIR is a compatibility alias that several hosts set
-    # alongside their own variable — CodeBuddy, ZCode and Trae all do. It must
-    # therefore be checked LAST, or every one of them is detected as claude and
-    # the context key becomes `claude_<their-session-id>`. That key does not
-    # match the session file `task.py start` wrote under the host's real name,
-    # so the sub-agent starts with no task context while the pointer exists on
-    # disk. Same fix as inject-workflow-state.py and session-start.py; this
-    # third copy was missed when those two were corrected.
+    # CLAUDE_PROJECT_DIR is a compatibility alias other hosts may also set, so
+    # it is checked LAST: a host detected as claude gets context key
+    # `claude_<its-session-id>`, which does not match the session file
+    # `task.py start` wrote under the host's real name, and every turn then
+    # reports no_task while the pointer exists on disk.
     env_map = {
-        "ZCODE_PROJECT_DIR": "zcode",
         "CURSOR_PROJECT_DIR": "cursor",
-        "CODEBUDDY_PROJECT_DIR": "codebuddy",
-        "FACTORY_PROJECT_DIR": "droid",
-        "GEMINI_PROJECT_DIR": "gemini",
-        "QODER_PROJECT_DIR": "qoder",
-        "KIRO_PROJECT_DIR": "kiro",
-        "COPILOT_PROJECT_DIR": "copilot",
-        "TRAE_PROJECT_DIR": "trae",
         # Last: the shared alias, only meaningful once no vendor key matched.
         "CLAUDE_PROJECT_DIR": "claude",
     }
@@ -121,18 +110,6 @@ def _detect_platform(input_data: dict) -> str | None:
         return "claude"
     if ".cursor" in script_parts:
         return "cursor"
-    if ".gemini" in script_parts:
-        return "gemini"
-    if ".qoder" in script_parts:
-        return "qoder"
-    if ".codebuddy" in script_parts:
-        return "codebuddy"
-    if ".factory" in script_parts:
-        return "droid"
-    if ".kiro" in script_parts:
-        return "kiro"
-    if ".zcode" in script_parts:
-        return "zcode"
     return None
 
 
@@ -174,9 +151,9 @@ def get_current_task(
 # requires changing it there too.
 # =============================================================================
 
-DEFAULT_MAX_FILE_BYTES = 32768
-DEFAULT_MAX_ARTIFACT_BYTES = 65536
-DEFAULT_MAX_TOTAL_BYTES = 131072
+DEFAULT_MAX_FILE_BYTES = 8192
+DEFAULT_MAX_ARTIFACT_BYTES = 16384
+DEFAULT_MAX_TOTAL_BYTES = 32768
 
 DEFAULT_LIMITS: dict[str, int] = {
     "max_file_bytes": DEFAULT_MAX_FILE_BYTES,
@@ -922,8 +899,8 @@ def _handle_codex_subagent_start(input_data: dict) -> None:
     if not subagent_type or not parent_session_id:
         return
 
-    # Payload cwd first, then our own — some hosts (CodeBuddy IDE 4.10.4)
-    # report "/" for every hook event. See inject-workflow-state.py.
+    # Payload cwd first, then our own — some hosts report "/" for every hook
+    # event. See inject-workflow-state.py.
     repo_root = None
     for candidate in (_string_value(input_data.get("cwd")), os.getcwd()):
         if not candidate:
@@ -1048,13 +1025,8 @@ def _parse_hook_input(input_data: dict) -> tuple[str, str, dict]:
 
     Returns (subagent_type, original_prompt, tool_input).
     Handles:
-    - Claude Code / Qoder / Droid: tool_name=Task|Agent, tool_input.subagent_type
-    - CodeBuddy: tool_name=task (IDE) or Task (CLI), tool_input.subagent_name
+    - Claude Code: tool_name=Task|Agent, tool_input.subagent_type
     - Cursor: tool_name=Task|Subagent, tool_input.subagent_type
-    - Copilot CLI: toolName=task (camelCase key, lowercase value)
-    - ZCode: toolName=Agent, toolInput/tool_input.subagent_type
-    - Gemini CLI: tool_name IS the agent name (BeforeTool matcher already filtered)
-    - Kiro: agentSpawn hook, agent_name field at top level
     """
     tool_input = input_data.get("tool_input", {})
     if not isinstance(tool_input, dict):
@@ -1070,21 +1042,6 @@ def _parse_hook_input(input_data: dict) -> tuple[str, str, dict]:
             tool_input.get("prompt", ""),
             tool_input,
         )
-
-    # Kiro: agentSpawn hook passes agent_name at top level
-    agent_name = input_data.get("agent_name", "")
-    if agent_name:
-        return agent_name, tool_input.get("prompt", input_data.get("prompt", "")), tool_input
-
-    # Gemini CLI: BeforeTool where tool_name IS the agent name
-    # (matcher already ensured it's one of our agents)
-    if tool_name in AGENTS_ALL:
-        return tool_name, tool_input.get("prompt", ""), tool_input
-
-    # Copilot CLI: toolName field (camelCase), value might be the agent name
-    tool_name_camel = input_data.get("toolName", "")
-    if tool_name_camel in AGENTS_ALL:
-        return tool_name_camel, input_data.get("toolArgs", ""), tool_input
 
     return "", "", tool_input
 
@@ -1122,7 +1079,11 @@ def main():
         sys.exit(0)
 
     # Get current task directory (research doesn't require it)
-    task_dir = get_current_task(repo_root, input_data)
+    task_dir = get_current_task(
+        repo_root,
+        input_data,
+        allow_single_session_fallback=True,
+    )
 
     # implement/check need task directory
     if subagent_type in AGENTS_REQUIRE_TASK:
@@ -1177,32 +1138,20 @@ def main():
     if not context:
         sys.exit(0)
 
-    # Return updated input. Most platforms ignore unrecognized fields, so we
-    # include multiple formats. ZCode is stricter; live probing confirmed the
-    # nested Claude-compatible shape below reaches the sub-agent prompt.
+    # Return updated input. Both platforms ignore unrecognized fields, so we
+    # include both formats.
     updated = {**tool_input, "prompt": new_prompt}
-    if _detect_platform(input_data) == "zcode":
-        output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "allow",
-                "updatedInput": updated,
-            }
-        }
-    else:
-        output = {
-            # Claude Code / Qoder / CodeBuddy / Droid format
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "allow",
-                "updatedInput": updated,
-            },
-            # Cursor format
-            "permission": "allow",
-            "updated_input": updated,
-            # Gemini format
+    output = {
+        # Claude Code format
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
             "updatedInput": updated,
-        }
+        },
+        # Cursor format
+        "permission": "allow",
+        "updated_input": updated,
+    }
 
     print(json.dumps(output, ensure_ascii=False))
     sys.exit(0)

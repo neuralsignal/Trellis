@@ -18,14 +18,7 @@ When the user wants to change `trellis-research`, `trellis-implement`, or `trell
 | Cursor | `.cursor/agents/trellis-*.md` |
 | OpenCode | `.opencode/agents/trellis-*.md` |
 | Codex | `.codex/agents/trellis-*.toml` |
-| Kiro | `.kiro/agents/trellis-*.json` |
-| Gemini CLI | `.gemini/agents/trellis-*.md` |
-| Qoder | `.qoder/agents/trellis-*.md` |
-| CodeBuddy | `.codebuddy/agents/trellis-*.md` |
-| Factory Droid | `.factory/droids/trellis-*.md` |
 | Pi Agent | `.pi/agents/trellis-*.md` |
-| Reasonix | `.reasonix/skills/trellis-*/SKILL.md` (subagent frontmatter) |
-| ZCode | `.zcode/agents/trellis-*.md` |
 
 Use the actual paths in the user project as authoritative.
 

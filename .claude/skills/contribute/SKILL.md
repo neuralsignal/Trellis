@@ -5,6 +5,10 @@ description: "Guide for contributing to Trellis documentation and marketplace. C
 
 # Contributing to Trellis
 
+> **Fork note:** this fork dropped the `marketplace/` and `docs-site/` submodules, so
+> neither path exists here. Everything below applies to `mindfold-ai/Trellis` upstream;
+> contribute those pieces there, not in this repo.
+
 Contributions are split across two repos:
 
 | What | Repo | Purpose |
