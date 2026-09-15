@@ -337,22 +337,15 @@ describe("pi templates", () => {
       "Trellis compact SessionStart context",
     );
     expect(first.systemPrompt).toContain("<first-reply-notice>");
-    expect(first.systemPrompt).toContain("the user's current request");
-    expect(first.systemPrompt).toContain(
-      "the user message that triggered this reply",
-    );
-    expect(first.systemPrompt).toContain("has no clear natural language");
-    expect(first.systemPrompt).toContain(
-      "explicitly established project communication language",
-    );
+    // The three language tiers, plus the exact neutral fallback.
+    expect(first.systemPrompt).toContain("the language of the user's request");
+    expect(first.systemPrompt).toContain("failing that the project's");
     expect(first.systemPrompt).toContain("Trellis SessionStart ✓");
+    expect(first.systemPrompt).toContain("Then answer directly");
     expect(first.systemPrompt).toContain(
-      "Continue directly with the user's request",
+      "sets no language for the rest of the reply",
     );
-    expect(first.systemPrompt).toContain(
-      "must not alter the language used for the remainder of the response",
-    );
-    expect(first.systemPrompt).toContain("This notice is one-shot");
+    expect(first.systemPrompt).toContain("One-shot");
     expect(first.systemPrompt).not.toContain("say once in Chinese");
     expect(first.systemPrompt).not.toContain(
       "exactly one short Chinese sentence",

@@ -51,7 +51,10 @@ import {
   getConfiguredPlatforms,
   collectPlatformTemplates,
 } from "../configurators/index.js";
-import { replacePythonCommandLiterals } from "../configurators/shared.js";
+import {
+  linkSharedSkills,
+  replacePythonCommandLiterals,
+} from "../configurators/shared.js";
 import { preserveCodexAgentModelKeys } from "../configurators/codex.js";
 import { ensureGitattributes } from "../configurators/workflow.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
@@ -2355,6 +2358,18 @@ export async function update(options: UpdateOptions): Promise<void> {
   // early-return below. Never touches disk in --dry-run.
   if (!options.dryRun) {
     ensureGitattributes(cwd);
+  }
+
+  // Re-assert each platform's skills symlink before the up-to-date exit below.
+  // `update` never calls `configurePlatform`, and a link carries no content for
+  // the template map to describe, so nothing else here would restore one. A
+  // clean tree is precisely the run that would otherwise skip it again, leaving
+  // a stale real `.claude/skills/` to serve the old skills forever.
+  // Idempotent, and it warns rather than deleting a real directory.
+  if (!options.dryRun) {
+    for (const platformId of getConfiguredPlatforms(cwd)) {
+      linkSharedSkills(cwd, platformId);
+    }
   }
 
   // Check if there's anything to do

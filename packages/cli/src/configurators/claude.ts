@@ -10,7 +10,8 @@ import { toPosix } from "../utils/posix.js";
 import {
   resolvePlaceholders,
   resolveCommands,
-  resolveSkills,
+  resolveSkillsNeutral,
+  SHARED_SKILLS_DIR,
   resolveBundledSkills,
   collectSkillTemplates,
   collectSharedHooks,
@@ -114,8 +115,8 @@ export function collectClaudeTemplates(): Map<string, string> {
     files.set(`.claude/commands/trellis/${cmd.name}.md`, cmd.content);
   }
   for (const [filePath, content] of collectSkillTemplates(
-    ".claude/skills",
-    resolveSkills(ctx),
+    SHARED_SKILLS_DIR,
+    resolveSkillsNeutral(ctx),
     resolveBundledSkills(ctx),
   )) {
     files.set(filePath, content);

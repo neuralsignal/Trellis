@@ -191,3 +191,7 @@ tmp1/
 .playwright-mcp
 .gitnexus
 .codegraph/
+
+# Fork release: `pnpm pack` output, uploaded to the GitHub Release by
+# .github/workflows/fork-release.yml. Never committed.
+dist-release/

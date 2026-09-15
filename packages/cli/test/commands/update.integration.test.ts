@@ -202,6 +202,12 @@ describe("update() integration", () => {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) walk(full);
+        // A skills symlink resolves to a directory; record its target.
+        else if (entry.isSymbolicLink())
+          snapshotBefore.set(
+            path.relative(tmpDir, full),
+            `symlink:${fs.readlinkSync(full)}`,
+          );
         else
           snapshotBefore.set(
             path.relative(tmpDir, full),
@@ -219,6 +225,12 @@ describe("update() integration", () => {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) walk2(full);
+        // A skills symlink resolves to a directory; record its target.
+        else if (entry.isSymbolicLink())
+          snapshotAfter.set(
+            path.relative(tmpDir, full),
+            `symlink:${fs.readlinkSync(full)}`,
+          );
         else
           snapshotAfter.set(
             path.relative(tmpDir, full),
@@ -1531,6 +1543,64 @@ describe("update() integration", () => {
           computeHash(readProjectFile(relativePath)),
         );
       }
+    });
+  });
+
+  describe("shared skills link", () => {
+    /**
+     * `update` never calls `configurePlatform`, and a symlink carries no
+     * content for the template map to describe, so `update` is the only place
+     * that can restore one for an already-installed project. These two cases
+     * are the reason it re-asserts the link before the up-to-date exit.
+     */
+    const LINK = path.join(".claude", "skills");
+
+    it("restores a missing skills link on an otherwise clean tree", async () => {
+      await init({ yes: true, force: true, claude: true });
+      fs.rmSync(path.join(tmpDir, LINK), { recursive: true, force: true });
+
+      await update({ skipAll: true });
+
+      const abs = path.join(tmpDir, LINK);
+      expect(fs.lstatSync(abs).isSymbolicLink()).toBe(true);
+      expect(path.resolve(path.dirname(abs), fs.readlinkSync(abs))).toBe(
+        path.join(tmpDir, ".agents", "skills"),
+      );
+    });
+
+    it("leaves a real skills directory alone and says so", async () => {
+      await init({ yes: true, force: true, claude: true });
+      const abs = path.join(tmpDir, LINK);
+      fs.rmSync(abs, { recursive: true, force: true });
+      fs.mkdirSync(abs, { recursive: true });
+      fs.writeFileSync(path.join(abs, "MINE.md"), "user note\n");
+
+      const warn = vi
+        .spyOn(console, "warn")
+        .mockImplementation((): void => undefined);
+      await update({ skipAll: true });
+      // Read the calls before restoring: mockRestore() also clears them.
+      const warnings = warn.mock.calls.flat().join("\n");
+      warn.mockRestore();
+
+      // The user's file is the point: a tool must not delete what it does not own.
+      expect(fs.readFileSync(path.join(abs, "MINE.md"), "utf-8")).toBe(
+        "user note\n",
+      );
+      expect(fs.lstatSync(abs).isSymbolicLink()).toBe(false);
+      expect(
+        warnings,
+        "a silent skip leaves the platform reading stale skills forever",
+      ).toContain(LINK.split(path.sep).join("/"));
+    });
+
+    it("dry-run writes no link", async () => {
+      await init({ yes: true, force: true, claude: true });
+      fs.rmSync(path.join(tmpDir, LINK), { recursive: true, force: true });
+
+      await update({ dryRun: true });
+
+      expect(fs.existsSync(path.join(tmpDir, LINK))).toBe(false);
     });
   });
 });

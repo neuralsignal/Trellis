@@ -8,7 +8,8 @@ import {
   replacePythonCommandLiterals,
   resolveBundledSkills,
   resolveCommands,
-  resolveSkills,
+  resolveSkillsNeutral,
+  SHARED_SKILLS_DIR,
 } from "./shared.js";
 
 /**
@@ -85,8 +86,8 @@ export function collectOpenCodeTemplates(): Map<string, string> {
     files.set(`.opencode/commands/trellis/${cmd.name}.md`, cmd.content);
   }
   for (const [filePath, content] of collectSkillTemplates(
-    ".opencode/skills",
-    resolveSkills(ctx),
+    SHARED_SKILLS_DIR,
+    resolveSkillsNeutral(ctx),
     resolveBundledSkills(ctx),
   )) {
     files.set(filePath, content);

@@ -12,6 +12,11 @@ on:
       - 'marketplace'
       - '**/*.py'
       - '.github/workflows/ci.yml'
+      # Paths the english-only guard protects; without these a doc-only
+      # change skips CI and the guard never runs.
+      - 'scripts/**'
+      - '*.md'
+      - '.github/**'
   pull_request:
     branches: [main]
     paths:
@@ -23,6 +28,11 @@ on:
       - 'marketplace'
       - '**/*.py'
       - '.github/workflows/ci.yml'
+      # Paths the english-only guard protects; without these a doc-only
+      # change skips CI and the guard never runs.
+      - 'scripts/**'
+      - '*.md'
+      - '.github/**'
 
 jobs:
   build:
@@ -40,6 +50,9 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.9"
+
+      - name: Check english-only (fork guard)
+        run: node scripts/check-english-only.mjs
 
       - name: Check Python 3.9 syntax
         run: |

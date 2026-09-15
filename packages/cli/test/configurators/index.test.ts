@@ -266,9 +266,11 @@ describe("getPlatformsWithPythonHooks", () => {
 
 describe("collectPlatformTemplates", () => {
   const SKILL_ROOTS: Record<AITool, string> = {
-    "claude-code": ".claude/skills",
+    // Claude Code and OpenCode read their own `.<platform>/skills/`, which is
+    // a symlink onto the shared tree; the tracked files live in one place.
+    "claude-code": ".agents/skills",
     cursor: ".cursor/skills",
-    opencode: ".opencode/skills",
+    opencode: ".agents/skills",
     codex: ".agents/skills",
     // Pi discovers `.agents/skills/` natively; Trellis writes there (shared
     // with Codex) instead of a private `.pi/skills/` copy (#447).

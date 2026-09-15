@@ -163,15 +163,11 @@ Ask before creating a Trellis task, every time. If the user declines: skip Trell
 - `implement.md` — ordered checklist, validation commands, review gates, rollback points.
 - `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context; they do not replace `implement.md`.
 
-Lightweight tasks may be PRD-only. Complex tasks need all three before `task.py start`.
+PRD-only is the default. `design.md` and `implement.md` are required before `task.py start` only when the task spans more than one repository or changes a contract other code depends on. Neither is ceremony to be produced on principle — write them when one of those two is true.
 
 ### Parent / Child Task Trees
 
-Use a parent task when one request holds several independently verifiable deliverables. It owns the source requirement set, the task map, cross-child acceptance criteria and final integration review, and is normally not the implementation target unless it also has direct work. Each child is planned, implemented, checked and archived on its own, with testable acceptance criteria.
-
-Parent/child structure is not a dependency system: if one child must wait for another, write that ordering into the child's `prd.md` / `implement.md`.
-
-Create children with `task.py create "<title>" --slug <name> --parent <parent-dir>`. Link existing tasks with `task.py add-subtask <parent> <child>`, unlink with `task.py remove-subtask <parent> <child>`.
+One request, several independently verifiable deliverables: the parent owns the requirement set and cross-child acceptance criteria, each child is planned, checked and archived on its own. Not a dependency system — ordering between children goes in the child's own `prd.md`. Commands and full detail: step 1.0.
 
 <!-- Per-turn breadcrumb: shown when there is no active task (before Phase 1) -->
 
@@ -190,7 +186,7 @@ If the correct status cannot be determined safely, ask the user before reconstru
 
 ### Phase 1: Plan
 - 1.0 Create task `[required · once]` (only after task-creation consent)
-- 1.1 Requirement exploration `[required · repeatable]` (`prd.md`; complex tasks also need `design.md` + `implement.md`)
+- 1.1 Requirement exploration `[required · repeatable]` (`prd.md`; add `design.md` + `implement.md` only for a cross-repository or contract-changing task)
 - 1.2 Research `[optional · repeatable]`
 - 1.3 Configure context `[required · once]` — Claude Code, Cursor, OpenCode, Codex, Pi (sub-agent-dispatch platforms only; inline platforms skip)
 - 1.4 Activate task `[required · once]` (review gate, then `task.py start`; status → in_progress)
@@ -274,7 +270,7 @@ Code committed. Run `/trellis:finish-work`; if dirty, return to Phase 3.4 first.
 1. Identify which Phase you're in, then continue from the next step there.
 2. Run steps in order; `[required]` steps can't be skipped, and `[once]` steps are skipped when their output already exists.
 3. Phases can roll back — Execute reveals a prd defect → return to Plan to fix, then re-enter Execute.
-4. Artifact presence informs the next step; a missing `design.md` / `implement.md` is valid for a lightweight task and incomplete planning for a complex one.
+4. Artifact presence informs the next step; a missing `design.md` / `implement.md` is the normal case, and incomplete planning only for a cross-repository or contract-changing task.
 5. Persist planning to the task artifacts, and run the checks before reporting completion.
 
 ### Active Task Routing
@@ -326,7 +322,7 @@ The brainstorm skill will guide you to:
 - Update `prd.md` immediately after each user answer
 - Split large scopes into a parent task plus child tasks when the deliverables can be verified independently
 - Keep `prd.md` focused on requirements and acceptance criteria
-- For complex tasks, produce `design.md` and `implement.md` before implementation starts
+- Produce `design.md` and `implement.md` before implementation only when the task crosses repositories or changes a contract
 
 When considering a parent/child split:
 - Use a parent task when one request contains several independently verifiable deliverables.
@@ -429,7 +425,7 @@ After artifact review, flip the task status to `in_progress`:
 python3 ./.trellis/scripts/task.py start <task-dir>
 ```
 
-For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
+`prd.md` alone is the default and is enough for most tasks. `design.md` and `implement.md` must exist and be reviewed before start when — and only when — the task spans more than one repository, or changes a contract other code depends on (an API shape, a schema, a capability key, a file format). Both tests are about blast radius, not effort: a long single-repo refactor that changes no contract stays PRD-only, and a three-line change to a published interface does not. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
 
 After this command succeeds, the breadcrumb auto-switches to `[workflow-state:in_progress]`, and the rest of Phase 2 / 3 follows.
 
@@ -442,9 +438,9 @@ If `task.py start` errors with a session-identity message (no context key from h
 | `prd.md` exists | ✅ |
 | User confirms task should enter implementation | ✅ |
 | `task.py start` has been run (status = in_progress) | ✅ |
-| `research/` has artifacts (complex tasks) | recommended |
-| `design.md` exists (complex tasks) | ✅ |
-| `implement.md` exists (complex tasks) | ✅ |
+| `research/` has artifacts | recommended |
+| `design.md` exists (cross-repository or contract-changing tasks only) | ✅ |
+| `implement.md` exists (cross-repository or contract-changing tasks only) | ✅ |
 
 [Claude Code, Cursor, OpenCode, codex-sub-agent, Pi]
 
@@ -612,7 +608,7 @@ This section is for developers who want to modify the Trellis workflow itself. A
 
 Edit the corresponding step's walkthrough body in the Phase 1 / 2 / 3 sections above. Critical invariants:
 - No active task must triage first and ask for task-creation consent before creating a Trellis task.
-- Planning must distinguish lightweight PRD-only tasks from complex tasks that require `prd.md`, `design.md`, and `implement.md` before start.
+- PRD-only is the default; `design.md` + `implement.md` are required before start only for a cross-repository or contract-changing task.
 - Every required execution path must keep the Phase 3.4 commit reminder reachable before `/trellis:finish-work`.
 
 All tag blocks live in the `## Phase Index` section above, immediately after each phase summary:

@@ -18,7 +18,8 @@
     "release:rc": "pnpm --filter @mindfoldhq/trellis release:rc",
     "release:promote": "pnpm --filter @mindfoldhq/trellis release:promote",
     "release:check": "node packages/cli/scripts/release-preflight.js check-versions",
-    "release:plan": "node packages/cli/scripts/release-preflight.js publish-plan"
+    "release:plan": "node packages/cli/scripts/release-preflight.js publish-plan",
+    "check:english": "node scripts/check-english-only.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",

@@ -189,7 +189,7 @@ function buildTurnFromMessage(
 /**
  * Turn pool with occurrence-counted dedupe.
  *
- * A plain `Set` of texts would be wrong: `ok` / `继续` are sent dozens of times
+ * A plain `Set` of texts would be wrong: `ok` / `continue` are sent dozens of times
  * in one real session and each is its own turn. Counting occurrences means a
  * `replacement_history` copy of a turn already in the pool is skipped exactly
  * once per copy, and genuine repeats survive.

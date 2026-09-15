@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
-import {
-  collectPlatformTemplates,
-  PLATFORM_IDS,
-} from "../../src/configurators/index.js";
+import { PLATFORM_IDS } from "../../src/configurators/index.js";
 import type { AITool } from "../../src/types/ai-tools.js";
 import {
   scriptsInit,

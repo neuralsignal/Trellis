@@ -12,7 +12,6 @@
 </p>
 
 <p align="center">
-<a href="./README_CN.md">简体中文</a> •
 <a href="https://docs.trytrellis.app/">Docs</a> •
 <a href="https://docs.trytrellis.app/start/install-and-first-task">Quick Start</a> •
 <a href="https://docs.trytrellis.app/advanced/multi-platform">Supported Platforms</a> •

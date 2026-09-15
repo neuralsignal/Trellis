@@ -4535,13 +4535,8 @@ describe("regression: current-task path normalization", () => {
   const NOTICE_WITHOUT_UPDATE_HINT = [
     "<first-reply-notice>",
     "On the first visible assistant reply in this session, briefly acknowledge that Trellis SessionStart context loaded.",
-    "Choose the acknowledgment language in this order:",
-    "1. Use the language of the user's current request (the user message that triggered this reply).",
-    "2. If that request has no clear natural language, use an explicitly established project communication language.",
-    "3. If neither provides a language, output the language-neutral fallback exactly: `Trellis SessionStart ✓`.",
-    "Continue directly with the user's request after the acknowledgment.",
-    "The acknowledgment must not alter the language used for the remainder of the response.",
-    "This notice is one-shot: do not repeat it after the first visible assistant reply in this session.",
+    "Acknowledge in the language of the user's request; failing that the project's; failing that exactly `Trellis SessionStart ✓`. It sets no language for the rest of the reply. Then answer directly.",
+    "One-shot: do not repeat it later in this session.",
     "</first-reply-notice>",
   ].join("\n");
 
@@ -5674,24 +5669,19 @@ describe("regression: current-task path normalization", () => {
       expect(ctx.startsWith("<session-context>")).toBe(true);
       expect(ctx).toContain("Trellis compact SessionStart context");
       expect(ctx).toContain("<first-reply-notice>");
-      expect(ctx).toContain("the user's current request");
-      expect(ctx).toContain("the user message that triggered this reply");
-      expect(ctx).toContain("has no clear natural language");
-      expect(ctx).toContain(
-        "explicitly established project communication language",
-      );
+      // The three language tiers, in order, plus the exact neutral fallback.
+      expect(ctx).toContain("the language of the user's request");
+      expect(ctx).toContain("failing that the project's");
       expect(ctx).toContain("Trellis SessionStart ✓");
-      expect(ctx).toContain("Continue directly with the user's request");
-      expect(ctx).toContain(
-        "must not alter the language used for the remainder of the response",
+      expect(ctx).toContain("Then answer directly");
+      expect(ctx).toContain("sets no language for the rest of the reply");
+      expect(ctx).toContain("One-shot");
+      expect(ctx.indexOf("the language of the user's request")).toBeLessThan(
+        ctx.indexOf("failing that the project's"),
       );
-      expect(ctx).toContain("This notice is one-shot");
-      expect(ctx.indexOf("the user's current request")).toBeLessThan(
-        ctx.indexOf("explicitly established project communication language"),
+      expect(ctx.indexOf("failing that the project's")).toBeLessThan(
+        ctx.indexOf("Trellis SessionStart ✓"),
       );
-      expect(
-        ctx.indexOf("explicitly established project communication language"),
-      ).toBeLessThan(ctx.indexOf("Trellis SessionStart ✓"));
       expect(ctx.indexOf("<first-reply-notice>")).toBeLessThan(
         ctx.indexOf("<current-state>"),
       );

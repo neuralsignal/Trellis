@@ -122,7 +122,8 @@ interface ZcodeSessionStore {
 const SQLITE_WARNINGS: SqliteWarningCopy = {
   unreadableCode: "zcode-db-unreadable",
   snapshotUnstableCode: "zcode-db-snapshot-unstable",
-  writingMessage: (dbPath) => `ZCode 正在写入，请重试。 (${dbPath})`,
+  writingMessage: (dbPath) =>
+    `ZCode is writing to its session database; retry in a moment (${dbPath})`,
   unreadableMessage: (dbPath, error) =>
     `cannot read ZCode session database (${dbPath}): ${error.message}`,
 };
