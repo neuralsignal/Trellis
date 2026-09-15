@@ -32,12 +32,7 @@ import {
 } from "../../src/templates/claude/index.js";
 import {
   resolvePlaceholders,
-  resolveAllAsSkills,
   resolveAllAsSkillsNeutral,
-  resolveBundledSkills,
-  resolveCommands,
-  resolveSkills,
-  wrapWithCommandFrontmatter,
   replacePythonCommandLiterals,
   setResolvedPythonCommand,
   resetResolvedPythonCommand,

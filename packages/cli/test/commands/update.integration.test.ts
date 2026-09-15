@@ -1575,7 +1575,9 @@ describe("update() integration", () => {
       fs.mkdirSync(abs, { recursive: true });
       fs.writeFileSync(path.join(abs, "MINE.md"), "user note\n");
 
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = vi
+        .spyOn(console, "warn")
+        .mockImplementation((): void => undefined);
       await update({ skipAll: true });
       // Read the calls before restoring: mockRestore() also clears them.
       const warnings = warn.mock.calls.flat().join("\n");
