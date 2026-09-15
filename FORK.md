@@ -31,6 +31,13 @@ inside a directory this fork deleted resolve as `git rm -r <dir>`.
 A release touching the 17 removed configurators or the Phase Index will conflict. That is
 the design, not a defect.
 
+`.github/workflows/publish.yml` is deleted here, so an upstream edit to it arrives as a
+`modify/delete` conflict — resolve as `git rm`. It targets npmjs under `@mindfoldhq/*`, which
+this fork cannot push to, and it also fires on `release: types: [published]`, which
+`fork-release.yml` must trigger. Leaving it in place and trusting `publish-plan` to skip an
+already-published version would go green by accident and attempt a real publish the moment the
+version moved.
+
 ## English-only
 
 `scripts/check-english-only.mjs` runs in `ci.yml` before the install step. It scans tracked
@@ -100,9 +107,43 @@ reads are not necessarily, and `trellis mem` must still find a paragraph break i
 ## Consuming it
 
 The package keeps the `@mindfoldhq/trellis` name so `trellis update` still recognises
-already-generated projects. Nothing is published to npm.
+already-generated projects. Nothing is published to npmjs — the fork has no rights to
+`@mindfoldhq/*`.
+
+### For a consuming repository
+
+Pin the release asset as a devDependency. `npm install` then makes `npx trellis` work with no
+global install, no pnpm, no build step and no credentials:
+
+```json
+"devDependencies": {
+  "@mindfoldhq/trellis": "https://github.com/neuralsignal/Trellis/releases/download/ns-0.6.17.1/mindfoldhq-trellis-0.6.17.tgz"
+}
+```
+
+`package-lock.json` records that URL with an integrity hash, so every teammate resolves the
+same bytes. Picking up a new fork release is one edit to that URL plus `npm install`.
+
+### Cutting a release
+
+Push a tag. `fork-release.yml` runs the english-only guard, typecheck, build, tests and
+`verify-packed-cli`, packs the CLI, creates the release, and then downloads the asset with no
+credentials to prove the consuming repositories can:
+
+```bash
+git tag ns-0.6.17.2 && git push origin ns-0.6.17.2
+```
+
+Tags are `ns-*`, never `v*`. Package versions stay at the upstream number, because `pnpm pack`
+rewrites `workspace:*` to the exact shared version and that version must exist on public npm —
+bumping the fork's version would pin core to something nobody published.
+
+### For a maintainer iterating locally
+
+A tag round-trip is not needed to test a template edit:
 
 ```bash
 pnpm install && pnpm --filter @mindfoldhq/trellis build
-npm i -g ./packages/cli
+# then, from the consuming repository:
+npm install <path-to-fork>/packages/cli
 ```

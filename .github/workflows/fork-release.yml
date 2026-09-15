@@ -1,0 +1,106 @@
+name: Fork release
+
+# Builds packages/cli, packs it, and attaches the tarball to a GitHub Release.
+# Consuming repositories pin that asset URL as a devDependency, so `npm install`
+# gives a teammate a working `npx trellis` with no global install, no pnpm, no
+# build step and no credentials.
+#
+# Trigger is `ns-*`, deliberately not `v*`: the fork publishes nothing to npmjs,
+# and `v*` is the tag shape upstream's publish.yml fires on.
+#
+# Package versions stay at the upstream number. `pnpm pack` rewrites
+# `workspace:*` to the exact shared version, so the packed CLI depends on
+# `@mindfoldhq/trellis-core@<that version>` and that version must exist on
+# public npm. Fork releases are distinguished by tag alone: ns-0.6.17.1,
+# ns-0.6.17.2, ...
+on:
+  push:
+    tags:
+      - "ns-*"
+
+concurrency:
+  group: fork-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      # Creating the release and uploading the tarball to it.
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check english-only (fork guard)
+        run: node scripts/check-english-only.mjs
+
+      - name: Typecheck (core + cli)
+        run: pnpm typecheck
+
+      # Build before test: integration tests spawn the real CLI via
+      # bin/trellis.js, which imports dist/ and needs build output to exist.
+      - name: Build (core then cli)
+        run: pnpm build
+
+      - name: Test (core + cli)
+        run: pnpm test
+
+      # The guard that matters. A packed CLI still carrying `workspace:*`
+      # installs as a broken dependency in every consuming repository, and the
+      # failure shows up at `npm install` time in someone else's clone.
+      - name: Verify packed CLI pins core to exact version
+        run: node packages/cli/scripts/release-preflight.js verify-packed-cli
+
+      - name: Pack the CLI
+        id: pack
+        run: |
+          set -euo pipefail
+          rm -rf dist-release
+          pnpm --filter @mindfoldhq/trellis pack --pack-destination "$PWD/dist-release"
+          tarball=$(ls dist-release/*.tgz)
+          test -s "$tarball"
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball ($(du -h "$tarball" | cut -f1))"
+
+      # `make_latest` and a non-draft release are both required: draft release
+      # assets are only served to authenticated callers, and the whole point of
+      # this artifact is an unauthenticated `npm install` from a fresh clone.
+      - name: Create release and upload the tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ github.ref_name }}" \
+            "${{ steps.pack.outputs.tarball }}" \
+            --title "${{ github.ref_name }}" \
+            --notes "Fork build of \`@mindfoldhq/trellis\`. Pin the asset URL below as a devDependency; \`npm install\` then makes \`npx trellis\` work with no global install and no credentials." \
+            --latest
+
+      # Proves the claim the consuming repositories depend on: the asset is
+      # reachable with no credentials at all.
+      - name: Verify the asset downloads unauthenticated
+        run: |
+          set -euo pipefail
+          name=$(basename "${{ steps.pack.outputs.tarball }}")
+          url="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$name"
+          # No Authorization header, and -f so a 404 fails the job.
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/check.tgz "$url"
+          test -s /tmp/check.tgz
+          cmp /tmp/check.tgz "${{ steps.pack.outputs.tarball }}"
+          echo "Anonymous download OK: $url"
