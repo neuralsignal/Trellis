@@ -324,6 +324,21 @@ def _resolve_active_task(trellis_dir: Path, input_data: dict):
     )
 
 
+def _has_active_task(trellis_dir: Path, input_data: dict) -> bool:
+    """True when the pointer resolves to a task directory that exists.
+
+    A stale pointer is not active: its payload asks the agent to run `task.py
+    finish`, which is right at a session start and noise mid-conversation.
+    """
+    try:
+        active = _resolve_active_task(trellis_dir, input_data)
+        if not active.task_path or active.stale:
+            return False
+        return _resolve_task_dir(trellis_dir, active.task_path).is_dir()
+    except Exception:
+        return False  # Optional gate; keep session-start non-fatal.
+
+
 def run_script(script_path: Path, context_key: str | None = None) -> str:
     try:
         if script_path.suffix == ".py":
@@ -810,6 +825,12 @@ def main():
     context_key = _resolve_context_key(trellis_dir, hook_input)
     _persist_context_key_for_bash(context_key)
 
+    # A compaction happens mid-conversation, so it reloads only when there is work
+    # in flight. Every other source injects unconditionally, as before.
+    source = hook_input.get("source")
+    if source == "compact" and not _has_active_task(trellis_dir, hook_input):
+        sys.exit(0)
+
     # Load config for scope filtering and legacy detection
     is_mono, packages, scope_config, task_pkg, default_pkg = _load_trellis_config(
         trellis_dir,
@@ -826,8 +847,11 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 </session-context>
 
 """)
-    output.write(_build_first_reply_notice(_resolve_update_hint(trellis_dir, context_key)))
-    output.write("\n\n")
+    if source != "compact":
+        # The notice asks for a visible acknowledgement. A compaction is invisible to
+        # the user, so the acknowledgement would arrive unprompted.
+        output.write(_build_first_reply_notice(_resolve_update_hint(trellis_dir, context_key)))
+        output.write("\n\n")
 
     # Legacy migration warning
     legacy_warning = _check_legacy_spec(trellis_dir, is_mono, packages)
