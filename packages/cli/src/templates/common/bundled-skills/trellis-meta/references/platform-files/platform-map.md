@@ -6,9 +6,9 @@ This page lists common Trellis file locations in a user project by platform. Whe
 
 | Platform | CLI flag | Main directory | Skill directory | Agent directory | Hooks/extensions |
 | --- | --- | --- | --- | --- | --- |
-| Claude Code | `--claude` | `.claude/` | `.claude/skills/` | `.claude/agents/` | `.claude/hooks/` + `.claude/settings.json` |
+| Claude Code | `--claude` | `.claude/` | `.claude/skills/` → `.agents/skills/` | `.claude/agents/` | `.claude/hooks/` + `.claude/settings.json` |
 | Cursor | `--cursor` | `.cursor/` | `.cursor/skills/` | `.cursor/agents/` | `.cursor/hooks.json` + `.cursor/hooks/` |
-| OpenCode | `--opencode` | `.opencode/` | `.opencode/skills/` | `.opencode/agents/` | `.opencode/plugins/` |
+| OpenCode | `--opencode` | `.opencode/` | `.opencode/skills/` → `.agents/skills/` | `.opencode/agents/` | `.opencode/plugins/` |
 | Codex | `--codex` | `.codex/` | `.agents/skills/` | `.codex/agents/` | `.codex/hooks/` + `.codex/hooks.json` |
 | Pi Agent | `--pi` | `.pi/` | `.agents/skills/` | `.pi/agents/` | `.pi/extensions/trellis/` (native `trellis_subagent` tool) + `.pi/settings.json` |
 
@@ -28,7 +28,11 @@ When changing sub-agent dispatch behavior on these platforms, edit the extension
 
 ### Shared `.agents/skills/`
 
-Codex and Pi Agent write the shared `.agents/skills/` layer. Other tools that support agentskills.io can also read this directory. If the user wants multiple compatible tools to share one skill, consider `.agents/skills/` first, but do not assume every platform reads it.
+`.agents/skills/` is the one real skills tree. Codex and Pi Agent read it natively. Claude Code and OpenCode only read their own `.<platform>/skills/`, so Trellis creates that path as a relative symlink onto the shared tree — the arrows in the matrix above.
+
+Edit a skill once, under `.agents/skills/`. Editing through a symlinked path writes the same file, which is fine; creating a real directory where a symlink belongs is not, because the platform then reads a private copy that no longer receives updates. `trellis update` re-creates a missing link, and warns rather than deleting a real directory it finds in that spot.
+
+Cursor keeps its own `.cursor/skills/`. Other tools that support agentskills.io can read `.agents/skills/` too, but do not assume every platform does.
 
 ## Decision Rules When Modifying Platform Files
 

@@ -9,6 +9,7 @@ AGPL-3.0-only, unchanged.
 | | Upstream | Here |
 |---|---|---|
 | Platforms | 22 | 5 — claude-code, cursor, opencode, codex, pi |
+| Skills on disk | a private tree per platform | one real `.agents/skills/`; `.claude/skills` and `.opencode/skills` symlink onto it |
 | Prompt language | bilingual English + Chinese | English only, enforced by `scripts/check-english-only.mjs` |
 | SessionStart payload | ~16 KB | ~6.8 KB |
 | SessionStart matchers | `startup`, `clear`, `compact` | `startup`, `clear` |
@@ -53,9 +54,25 @@ reads are not necessarily, and `trellis mem` must still find a paragraph break i
   `dist/` verbatim at build time. There is no codegen, so every template change is a plain
   file edit — and every template change needs `pnpm --filter @mindfoldhq/trellis build`
   before a consuming project sees it.
-- **The dogfood tree must stay byte-identical.** `.trellis/scripts/**/*.py` mirrors
-  `packages/cli/src/templates/trellis/scripts/**/*.py`; `test/regression.test.ts` asserts it.
-  Edit the template, then copy it across.
+- **The dogfood *scripts* must stay byte-identical — the rest of the tree need not.**
+  `.trellis/scripts/**/*.py` mirrors `packages/cli/src/templates/trellis/scripts/**/*.py`;
+  `test/regression.test.ts` asserts that pair. Edit the template, then copy it across.
+
+  Nothing asserts this repository's own `.claude/`, `.opencode/`, `.pi/` or `.agents/` install,
+  and it is already stale — `.pi/skills/` still exists here although migration 0.6.8 retired it.
+  Every test that looks at platform files reads `packages/cli/src/templates/**` instead. Do not
+  regenerate the install to "fix" it: it is a large diff that conflicts on each upstream merge
+  and proves nothing.
+- **A skills symlink is not a template file.** `AI_TOOLS[id].sharedSkillsLink` names the path a
+  platform reads when it will not read `.agents/skills/` directly, and `linkSharedSkills` points
+  it there. No `collectTemplates` can describe a link, so it is not hash-tracked and both entry
+  points assert it themselves: `configurePlatform` on init, and `update` before its
+  "Already up to date!" exit — a clean tree is exactly the run that would otherwise skip a
+  missing link forever. It never deletes a real directory found in that spot; it warns, because
+  the directory may be the user's.
+
+  Pi is deliberately absent from that map. It discovers `.agents/skills/` natively, and a second
+  root makes it see every Trellis skill twice — the bug migration 0.6.8 removed (#447).
 - **`PLATFORM_IDS` is exported from `src/configurators/index.ts`**, not `src/types/ai-tools.ts`.
   `AI_TOOLS` in `ai-tools.ts` is the single source of truth the id list derives from.
 - **Marker blocks are filtered in only one of the two consumers.**

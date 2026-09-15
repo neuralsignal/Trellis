@@ -348,6 +348,7 @@ export function wrapWithOmpFrontmatter(name: string, content: string): string {
 // Shared configurator helpers
 // ---------------------------------------------------------------------------
 
+import fs from "node:fs";
 import path from "node:path";
 import { ensureDir, writeFile } from "../utils/file-writer.js";
 import {
@@ -360,6 +361,7 @@ import {
   getSharedHookScriptsForPlatform,
   type SharedHookPlatform,
 } from "../templates/shared-hooks/index.js";
+import { AI_TOOLS, type AITool } from "../types/ai-tools.js";
 
 /** A resolved template ready to be written to disk. */
 export interface ResolvedTemplate {
@@ -500,6 +502,73 @@ export function resolveBundledSkills(
       content: resolvePlaceholders(file.content, ctx),
     })),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Shared skills directory
+// ---------------------------------------------------------------------------
+
+/** The one real skills tree. Every platform reads it, directly or by link. */
+export const SHARED_SKILLS_DIR = ".agents/skills";
+
+/**
+ * Point a platform's skills path at {@link SHARED_SKILLS_DIR}.
+ *
+ * Claude Code and OpenCode read their own `.<platform>/skills/`; Codex and Pi
+ * read `.agents/skills/` natively. Writing one tree and linking the rest keeps
+ * a skill edit to a single file, so `trellis update` cannot report the same
+ * change three times over.
+ *
+ * A no-op for a platform that declares no `sharedSkillsLink`, so both callers
+ * — `configurePlatform` on init and `update` — can run it over every platform.
+ *
+ * Idempotent. Never deletes: a real directory at the link path is left alone
+ * with a warning, because it may hold a user's own files, and silently
+ * replacing it would be a tool destroying data it does not own.
+ */
+export function linkSharedSkills(cwd: string, platformId: AITool): void {
+  const linkPath = AI_TOOLS[platformId].sharedSkillsLink;
+  if (linkPath === undefined) return;
+
+  const absLink = path.join(cwd, ...linkPath.split("/"));
+  // Depth from the link to the repo root: `.claude/skills` -> `../..`, then
+  // back down. Computed, not hardcoded, so a nested link path stays correct.
+  const target = path.relative(
+    path.dirname(absLink),
+    path.join(cwd, ...SHARED_SKILLS_DIR.split("/")),
+  );
+
+  let existing: fs.Stats | undefined;
+  try {
+    existing = fs.lstatSync(absLink);
+  } catch {
+    existing = undefined;
+  }
+
+  if (existing?.isSymbolicLink() === true) {
+    if (fs.readlinkSync(absLink) === target) return; // already correct
+    fs.unlinkSync(absLink); // ours to repoint: a link holds no content
+  } else if (existing !== undefined) {
+    console.warn(
+      `  ! ${linkPath} is a real directory; skills now live in ${SHARED_SKILLS_DIR}.\n` +
+        `    Remove ${linkPath} and re-run to link it, or leave it and maintain the copy by hand.`,
+    );
+    return;
+  }
+
+  ensureDir(path.dirname(absLink));
+  try {
+    fs.symlinkSync(target, absLink, "dir");
+  } catch {
+    // Hosts without symlink permission (Windows without Developer Mode) fall
+    // back to a copy, so the platform still finds its skills.
+    fs.cpSync(path.join(cwd, ...SHARED_SKILLS_DIR.split("/")), absLink, {
+      recursive: true,
+    });
+    console.warn(
+      `  ! could not symlink ${linkPath}; copied ${SHARED_SKILLS_DIR} instead.`,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

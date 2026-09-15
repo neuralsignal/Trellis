@@ -30,6 +30,7 @@ import { collectPiTemplates } from "./pi.js";
 import {
   renderTemplateMap,
   writeTemplateMap,
+  linkSharedSkills,
   type PlatformConfigureOptions,
 } from "./shared.js";
 
@@ -154,12 +155,15 @@ export function getPlatformManagedPaths(platformId: AITool): string[] {
 /**
  * Get the configure function for a platform
  */
-export function configurePlatform(
+export async function configurePlatform(
   platformId: AITool,
   cwd: string,
   options?: PlatformConfigureOptions,
 ): Promise<void> {
-  return PLATFORM_FUNCTIONS[platformId].configure(cwd, options);
+  await PLATFORM_FUNCTIONS[platformId].configure(cwd, options);
+  // A symlink is not a `Map<path, content>` entry, so no `collectTemplates`
+  // can describe it. `update` re-asserts the same links for the same reason.
+  linkSharedSkills(cwd, platformId);
 }
 
 /**

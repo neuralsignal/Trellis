@@ -102,7 +102,7 @@ The shape and dispatch wiring are already generic, so adding a skill requires on
    - Source files exist on the branch being tagged.
    - `pnpm --filter @mindfoldhq/trellis build` copies the asset into `dist/templates/common/bundled-skills/<skill>/`.
    - `npm pack --dry-run --json` includes the expected `dist/**` paths.
-   - In a fresh temp project, `trellis init` writes `.claude/skills/<skill>/SKILL.md`, `.agents/skills/<skill>/SKILL.md`, `.cursor/skills/<skill>/SKILL.md`, etc.
+   - In a fresh temp project, `trellis init` writes `.agents/skills/<skill>/SKILL.md`, reachable through each platform's skills path (`.claude/skills/` and `.opencode/skills/` link onto it; Cursor keeps its own `.cursor/skills/<skill>/SKILL.md`).
    - `.trellis/.template-hashes.json` lists the generated files.
    - `trellis update --dry-run` in that temp project reports "Already up to date!".
 
@@ -120,7 +120,7 @@ The supported pattern relies on the existing template-hash diff in `trellis upda
 
 Caveats:
 
-- The override only applies to the one platform whose directory you edited. To override the same skill across, for example, Claude Code and Codex, you must edit both `.claude/skills/<name>/` and `.agents/skills/<name>/`.
+- Claude Code, OpenCode, Codex and Pi all read the one shared tree, so a single edit under `.agents/skills/<name>/` covers all four — `.claude/skills/` and `.opencode/skills/` are symlinks onto it, and editing through either path writes the same file. Cursor keeps a separate `.cursor/skills/<name>/` that must be edited on its own.
 - A future `trellis update --force` will overwrite local edits. Keep the override under version control so it can be reapplied if needed.
 - Marketplace skills installed under the same platform skill root with a different folder name (e.g. `.claude/skills/my-custom-meta/`) are untouched by Trellis and are the cleaner option when the goal is to add behavior, not to mutate the bundled skill.
 - Team-private conventions belong in `.trellis/spec/` or in a separate marketplace-style local skill, not in modifications to `trellis-meta` itself. See `customize-local/add-project-local-conventions.md`.

@@ -137,6 +137,8 @@ describe("uninstall() integration", () => {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) walk(full);
+        else if (entry.isSymbolicLink())
+          snapshot[full] = `symlink:${fs.readlinkSync(full)}`;
         else snapshot[full] = fs.readFileSync(full, "utf-8");
       }
     }
@@ -147,7 +149,13 @@ describe("uninstall() integration", () => {
     // No files changed.
     for (const [p, content] of Object.entries(snapshot)) {
       expect(fs.existsSync(p)).toBe(true);
-      expect(fs.readFileSync(p, "utf-8")).toBe(content);
+      // Read the same way the snapshot was taken: a skills symlink resolves
+      // to a directory, so its target is the thing that must be unchanged.
+      expect(
+        fs.lstatSync(p).isSymbolicLink()
+          ? `symlink:${fs.readlinkSync(p)}`
+          : fs.readFileSync(p, "utf-8"),
+      ).toBe(content);
     }
     // Inquirer not prompted.
     expect(inquirer.prompt).not.toHaveBeenCalled();

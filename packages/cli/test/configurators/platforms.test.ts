@@ -96,7 +96,24 @@ function readConfiguredFile(root: string, relativePath: string): string {
  * is frozen after their first `trellis update` and is left behind by
  * `trellis uninstall`.
  */
-const CONFIGURE_ONLY_PATHS = new Set([".claude/hooks/statusline.py"]);
+/**
+ * Per-platform symlinks onto `.agents/skills/`, read from the registry rather
+ * than restated here so the test cannot drift from what ships. A link carries
+ * no content, so `collectTemplates` cannot describe it and `trellis update`
+ * does not hash it. Each one is asserted to be a real link to the shared tree
+ * below — this is an exemption from content tracking, not from checking.
+ */
+const SKILL_LINKS = Object.fromEntries(
+  PLATFORM_IDS.flatMap((id) => {
+    const link = AI_TOOLS[id].sharedSkillsLink;
+    return link === undefined ? [] : [[id, link] as const];
+  }),
+) as Partial<Record<(typeof PLATFORM_IDS)[number], string>>;
+
+const CONFIGURE_ONLY_PATHS = new Set([
+  ".claude/hooks/statusline.py",
+  ...Object.values(SKILL_LINKS),
+]);
 
 /**
  * Directories `configure` creates with no file underneath. A
@@ -146,7 +163,15 @@ function walkEmptyDirs(root: string, rel = ""): string[] {
 function snapshotDir(root: string): Map<string, string> {
   const snapshot = new Map<string, string>();
   for (const relPath of walkFiles(root)) {
-    snapshot.set(relPath, readConfiguredFile(root, relPath));
+    const abs = path.join(root, ...relPath.split("/"));
+    // A skills symlink resolves to a directory; its target is what must stay
+    // stable across re-runs, so snapshot that instead of reading through it.
+    snapshot.set(
+      relPath,
+      fs.lstatSync(abs).isSymbolicLink()
+        ? `symlink:${fs.readlinkSync(abs)}`
+        : readConfiguredFile(root, relPath),
+    );
   }
   return snapshot;
 }
@@ -303,6 +328,21 @@ describe("configurePlatform", () => {
           `${id} wrote files that collectTemplates does not describe`,
         ).toEqual([]);
 
+        // The skills link is exempt from content tracking, not from checking:
+        // it must be a symlink resolving to the one shared tree.
+        const link = SKILL_LINKS[id];
+        if (link !== undefined) {
+          const absLink = path.join(platformDir, ...link.split("/"));
+          expect(
+            fs.lstatSync(absLink).isSymbolicLink(),
+            `${id} should link ${link} rather than copy it`,
+          ).toBe(true);
+          expect(
+            path.resolve(path.dirname(absLink), fs.readlinkSync(absLink)),
+            `${id} should link ${link} to the shared skills tree`,
+          ).toBe(path.join(platformDir, ".agents", "skills"));
+        }
+
         expect(
           walkEmptyDirs(platformDir),
           `${id} created empty directories not named in CONFIGURE_ONLY_EMPTY_DIRS`,
@@ -379,7 +419,10 @@ describe("configurePlatform", () => {
     const undescribed = walkFiles(tmpDir).filter(
       (relPath) => !templates.has(relPath),
     );
-    expect(undescribed).toEqual([...CONFIGURE_ONLY_PATHS]);
+    // Only claude-code is configured here, so only its own skills link exists.
+    expect(undescribed.sort()).toEqual(
+      [".claude/hooks/statusline.py", SKILL_LINKS["claude-code"]].sort(),
+    );
     expect(readConfiguredFile(tmpDir, ".claude/hooks/statusline.py")).toBe(
       replacePythonCommandLiterals(getStatuslineHook()),
     );

@@ -84,6 +84,15 @@ export interface AIToolConfig {
    * to the platform's managed paths automatically.
    */
   supportsAgentSkills?: boolean;
+  /**
+   * Skills path this platform reads, when it will not read `.agents/skills`
+   * directly. Trellis writes the shared tree once and points this path at it
+   * with a relative symlink, so one skill edit stays one file on disk.
+   *
+   * Absent for a platform that discovers `.agents/skills/` natively — a second
+   * root makes it see every skill twice (#447).
+   */
+  sharedSkillsLink?: string;
   /** Additional managed paths beyond configDir (e.g., .agents/skills for Codex) */
   extraManagedPaths?: string[];
   /** CLI flag name for --flag options (e.g., "claude" for --claude) */
@@ -122,6 +131,8 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     name: "Claude Code",
     templateDirs: ["common", "claude"],
     configDir: ".claude",
+    supportsAgentSkills: true,
+    sharedSkillsLink: ".claude/skills",
     cliFlag: "claude",
     defaultChecked: true,
     hasPythonHooks: true,
@@ -154,6 +165,8 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     name: "OpenCode",
     templateDirs: ["common", "opencode"],
     configDir: ".opencode",
+    supportsAgentSkills: true,
+    sharedSkillsLink: ".opencode/skills",
     cliFlag: "opencode",
     defaultChecked: false,
     // hasHooks: false — OpenCode has no session-start hook. The pre-v0.5.0
