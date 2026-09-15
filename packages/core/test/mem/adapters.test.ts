@@ -2513,7 +2513,7 @@ describe.skipIf(!ZCODE_PY)("zcodeListSessions / zcodeExtractDialogue", () => {
       expect(warnings).toEqual([
         {
           code: "zcode-db-snapshot-unstable",
-          message: `ZCode 正在写入，请重试。 (${ZCODE_DB})`,
+          message: `ZCode is writing to its session database; retry in a moment (${ZCODE_DB})`,
         },
       ]);
     } finally {

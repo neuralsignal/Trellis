@@ -9,7 +9,7 @@ AGPL-3.0-only, unchanged.
 | | Upstream | Here |
 |---|---|---|
 | Platforms | 22 | 5 — claude-code, cursor, opencode, codex, pi |
-| Prompt language | bilingual English + Chinese | English only |
+| Prompt language | bilingual English + Chinese | English only, enforced by `scripts/check-english-only.mjs` |
 | SessionStart payload | ~16 KB | ~6.8 KB |
 | SessionStart matchers | `startup`, `clear`, `compact` | `startup`, `clear` |
 | Context-injection limits | 32768 / 65536 / 131072 | 8192 / 16384 / 32768 |
@@ -28,6 +28,24 @@ inside a directory this fork deleted resolve as `git rm -r <dir>`.
 
 A release touching the 17 removed configurators or the Phase Index will conflict. That is
 the design, not a defect.
+
+## English-only
+
+`scripts/check-english-only.mjs` runs in `ci.yml` before the install step. It scans tracked
+files under `packages/cli/src/templates/`, `packages/core/src/`, `packages/cli/src/migrations/`,
+`.github/`, and root `*.md`.
+
+Out of scope on purpose, and encoded in the script's own `EXCLUDE` list rather than here:
+
+- **Tests.** They pin strings, so a shipped string that changes still forces a test edit — but
+  a Chinese fixture reaches no user.
+- **`.trellis/tasks/archive/**`.** Upstream's task history. Deleting 396 files would conflict on
+  every `git merge upstream/main`, and buys a consumer nothing.
+
+One exception is deliberate: `packages/core/src/mem/dialogue.ts` keeps a `\u4e00-\u9fa5`
+range, written as escapes so the guard passes. This fork's prose is English; the repositories it
+reads are not necessarily, and `trellis mem` must still find a paragraph break in a Chinese
+`AGENTS.md`.
 
 ## Things that bite
 
