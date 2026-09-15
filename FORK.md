@@ -11,7 +11,8 @@ AGPL-3.0-only, unchanged.
 | Platforms | 22 | 5 — claude-code, cursor, opencode, codex, pi |
 | Skills on disk | a private tree per platform | one real `.agents/skills/`; `.claude/skills` and `.opencode/skills` symlink onto it |
 | Prompt language | bilingual English + Chinese | English only, enforced by `scripts/check-english-only.mjs` |
-| SessionStart payload | ~16 KB | ~6.8 KB |
+| SessionStart payload | ~16 KB | ~6.1 KB |
+| Planning artifacts | `design.md` + `implement.md` for every "complex" task | PRD-only by default; both required only when a task crosses repositories or changes a contract |
 | SessionStart matchers | `startup`, `clear`, `compact` | `startup`, `clear` |
 | Context-injection limits | 32768 / 65536 / 131072 | 8192 / 16384 / 32768 |
 | Submodules | `marketplace/`, `docs-site/` | none |
@@ -91,7 +92,10 @@ reads are not necessarily, and `trellis mem` must still find a paragraph break i
   ```
 - **One payload key per host.** Cursor reads the top-level `additional_context`; Claude Code
   reads `hookSpecificOutput.additionalContext`. Emitting both doubles the largest thing the
-  hook writes.
+  hook writes. `test/regression.test.ts` `[#412]` pins one key per host.
+- **The first-reply notice is written three times.** `shared-hooks/session-start.py`,
+  `codex/hooks/session-start.py` and `pi/extensions/trellis/index.ts.txt` each carry their own
+  copy, and `regression.test.ts` holds a fourth as a literal. Change one, change all four.
 
 ## Consuming it
 
