@@ -12,6 +12,7 @@ AGPL-3.0-only, unchanged.
 | Skills on disk | a private tree per platform | one real `.agents/skills/`; `.claude/skills` and `.opencode/skills` symlink onto it |
 | Prompt language | bilingual English + Chinese | English only, enforced by `scripts/check-english-only.mjs` |
 | SessionStart payload | ~16 KB | ~6.1 KB |
+| `AGENTS.md` Trellis block | 19 lines | 14 |
 | Planning artifacts | `design.md` + `implement.md` for every "complex" task | PRD-only by default; both required only when a task crosses repositories or changes a contract |
 | SessionStart matchers | `startup`, `clear`, `compact` | `startup`, `clear` |
 | Context-injection limits | 32768 / 65536 / 131072 | 8192 / 16384 / 32768 |
