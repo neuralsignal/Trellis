@@ -2299,15 +2299,16 @@ describe("regression: hook JSON format (beta.7)", () => {
 });
 
 describe("regression: SessionStart reinject on clear (MIN-231)", () => {
-  it("[MIN-231] Claude SessionStart hooks cover startup and clear, not compact", () => {
+  it("[MIN-231] Claude SessionStart hooks cover startup, clear and compact", () => {
     const settings = JSON.parse(claudeSettingsTemplate);
     const matchers = settings.hooks.SessionStart.map(
       (e: { matcher: string }) => e.matcher,
     );
-    // `compact` is deliberately absent in this fork: a compaction already
-    // carries the session summary forward, so re-injecting the whole
-    // SessionStart payload on top of it duplicates context.
-    expect(matchers).toEqual(["startup", "clear"]);
+    // `compact` fires unconditionally and session-start.py decides: it reloads
+    // only when a task is active, because a compaction summarises the
+    // conversation and not the injected context. See
+    // session-start-compact.integration.test.ts.
+    expect(matchers).toEqual(["startup", "clear", "compact"]);
   });
 
   it("[MIN-231] all SessionStart matchers invoke session-start.py", () => {

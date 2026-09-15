@@ -14,7 +14,7 @@ AGPL-3.0-only, unchanged.
 | SessionStart payload | ~16 KB | ~6.1 KB |
 | `AGENTS.md` Trellis block | 19 lines | 14 |
 | Planning artifacts | `design.md` + `implement.md` for every "complex" task | PRD-only by default; both required only when a task crosses repositories or changes a contract |
-| SessionStart matchers | `startup`, `clear`, `compact` | `startup`, `clear` |
+| SessionStart matchers | `startup`, `clear`, `compact` — all unconditional | `startup`, `clear`; `compact` only when a task is active |
 | Context-injection limits | 32768 / 65536 / 131072 | 8192 / 16384 / 32768 |
 | Submodules | `marketplace/`, `docs-site/` | none |
 
@@ -101,6 +101,15 @@ reads are not necessarily, and `trellis mem` must still find a paragraph break i
 - **One payload key per host.** Cursor reads the top-level `additional_context`; Claude Code
   reads `hookSpecificOutput.additionalContext`. Emitting both doubles the largest thing the
   hook writes. `test/regression.test.ts` `[#412]` pins one key per host.
+- **The `compact` matcher fires unconditionally; the gate is in the script.** A matcher is a
+  static string, so "compact, but only when a task is active" cannot be spelled in
+  `templates/claude/settings.json`. `session-start.py` reads `hook_input["source"]` and returns
+  before loading config when the source is `compact` and no task is active, and it omits the
+  first-reply notice when it does inject — a compaction is invisible to the user, so an
+  acknowledgement would arrive unprompted. `test/scripts/session-start-compact.integration.test.ts`
+  pins all of it. `compact` is a Claude Code source, so the branch is inert for cursor, which
+  shares the script.
+
 - **The first-reply notice is written three times.** `shared-hooks/session-start.py`,
   `codex/hooks/session-start.py` and `pi/extensions/trellis/index.ts.txt` each carry their own
   copy, and `regression.test.ts` holds a fourth as a literal. Change one, change all four.
