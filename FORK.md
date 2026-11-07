@@ -17,6 +17,7 @@ AGPL-3.0-only, unchanged.
 | SessionStart matchers | `startup`, `clear`, `compact` — all unconditional | `startup`, `clear`; `compact` only when a task is active |
 | Context-injection limits | 32768 / 65536 / 131072 | 8192 / 16384 / 32768 |
 | Submodules | `marketplace/`, `docs-site/` | none |
+| Root instructions | `AGENTS.md` and `CLAUDE.md`, two files | `AGENTS.md`; `CLAUDE.md` is a symlink to it |
 
 ## Syncing with upstream
 
@@ -31,6 +32,9 @@ inside a directory this fork deleted resolve as `git rm -r <dir>`.
 
 A release touching the 17 removed configurators or the Phase Index will conflict. That is
 the design, not a defect.
+
+An upstream edit to `CLAUDE.md` arrives as a conflict on the symlink. Port the content into
+`AGENTS.md` and keep `CLAUDE.md` a symlink.
 
 `.github/workflows/publish.yml` is deleted here, so an upstream edit to it arrives as a
 `modify/delete` conflict — resolve as `git rm`. It targets npmjs under `@mindfoldhq/*`, which
